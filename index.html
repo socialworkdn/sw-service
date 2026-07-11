@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบรายงานสังคมสงเคราะห์</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <style>
+    body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
+    :root { --primary: #3d82af; --primary-dark: #2c6385; --accent: #ff3f3e; }
+    .bg-theme { background-color: var(--primary) !important; }
+    .text-theme { color: var(--primary) !important; }
+    .hover-bg-theme:hover { background-color: var(--primary-dark) !important; }
+    .input-field { background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 0.5rem; padding: 0.625rem 0.75rem; width: 100%; color: #1e293b; transition: all 0.2s; }
+    .input-field:focus { border-color: var(--primary) !important; outline: none; box-shadow: 0 0 0 3px rgba(61, 130, 175, 0.2) !important; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .page-section { display: none; opacity: 0; transition: opacity 0.3s ease-in-out; }
+    .page-section.active { display: block; opacity: 1; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="flex h-screen overflow-hidden bg-slate-50">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="bg-gradient-to-b from-[#2c6385] to-[#1a3f55] w-64 text-white flex-shrink-0 fixed inset-y-0 left-0 md:relative z-40 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl">
+    <div class="h-16 flex items-center px-4 border-b border-white/10 justify-between">
+      <div class="flex items-center">
+        <div class="bg-white p-1 rounded-full mr-3 shadow-md">
+          <img src="https://img2.pic.in.th/Logo-sw6944b6d81ee7918a02.png" alt="Logo" class="h-8 w-8 object-contain rounded-full">
+        </div>
+        <span class="font-bold text-lg tracking-wide text-white">Medical Social Work</span>
+      </div>
+      <button onclick="toggleSidebar()" class="md:hidden text-white/70 hover:text-white">✖</button>
+    </div>
+    <div class="overflow-y-auto h-[calc(100vh-4rem)] custom-scrollbar py-4 px-3 space-y-1">
+      <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-3 mt-2">เมนูหลัก</p>
+      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group bg-white/20 text-white font-bold" onclick="switchTab('page-register', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📝</span> บันทึกเคสใหม่</a>
+      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-followup', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">🔄</span> ติดตาม (Follow-up)</a>
+      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-search', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">🔍</span> ค้นหาประวัติ</a>
+      <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-3 mt-6">สถิติและรายงาน</p>
+      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-dashboard', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📊</span> Dashboard</a>
+      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-export', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📥</span> ออกรายงาน Excel</a>
+    </div>
+  </aside>
+
+  <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-gray-900/50 z-30 hidden md:hidden"></div>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col w-full h-screen relative">
+    <header class="bg-white shadow-sm border-b border-gray-200 h-16 flex items-center justify-between px-4 z-20 flex-shrink-0">
+      <div class="flex items-center">
+        <button onclick="toggleSidebar()" class="text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-100 transition mr-2 md:hidden">☰</button>
+        <button onclick="toggleSidebarDesktop()" class="text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-100 transition mr-2 hidden md:block">☰</button>
+        <h2 class="text-lg md:text-xl font-bold text-gray-800 hidden sm:block">รพ.สมเด็จพระสังฆราช (อมฺพรมหาเถร)</h2>
+      </div>
+      <div class="text-sm font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">กลุ่มงานสังคมสงเคราะห์</div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 lg:p-8 relative">
+      <div class="max-w-5xl mx-auto">
+
+        <!-- ================= 1. หน้าบันทึกเคสใหม่ ================= -->
+        <div id="page-register" class="page-section active">
+          <div class="mb-6 flex items-center"><h1 class="text-2xl font-bold text-gray-800 border-l-4 border-[#3d82af] pl-3">📝 บันทึกข้อมูลการให้บริการ</h1></div>
+          <form id="socialForm" onsubmit="handleFormSubmit(event, 'saveRecord')" class="space-y-6">
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-sky-50 px-5 py-3 border-l-4 border-[#3d82af]"><h2 class="font-bold text-[#3d82af]">1. ข้อมูลการให้บริการ</h2></div>
+              <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">วันที่ให้บริการ</label><input type="date" id="serviceDate" name="serviceDate" class="input-field cursor-pointer" required></div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">นักสังคมสงเคราะห์</label>
+                  <select name="socialWorker" class="input-field" required>
+                    <option value="">-- เลือกผู้บันทึก --</option>
+                    <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">ประเภทผู้ป่วย *</label>
+                  <select name="patientType" id="patientType" class="input-field font-medium" onchange="toggleAN()" required>
+                    <option value="">-- เลือกประเภท --</option>
+                    <optgroup label="ผู้ป่วยใหม่">
+                      <option value="ผู้ป่วยใหม่ OPD">ผู้ป่วยใหม่ OPD</option>
+                      <option value="ผู้ป่วยใหม่ IPD">ผู้ป่วยใหม่ IPD</option>
+                      <option value="ผู้ป่วยใหม่ ชุมชน">ผู้ป่วยใหม่ ชุมชน</option>
+                      <option value="ผู้ป่วยใหม่ ER">ผู้ป่วยใหม่ ER</option>
+                      </optgroup>
+                    <optgroup label="ผู้ป่วยเก่า">
+                      <option value="ผู้ป่วยเก่า OPD">ผู้ป่วยเก่า OPD</option>
+                      <option value="ผู้ป่วยเก่า IPD">ผู้ป่วยเก่า IPD</option>
+                      <option value="ผู้ป่วยเก่า ชุมชน">ผู้ป่วยเก่า ชุมชน</option>
+                      <option value="ผู้ป่วยเก่า ER">ผู้ป่วยเก่า ER</option>
+                      </optgroup>
+                    <optgroup label="อื่นๆ">
+                      <option value="คลินิกสังคมสงเคราะห์">คลินิกสังคมสงเคราะห์</option>
+                      <option value="OSCC">OSCC</option>
+                      <option value="ศูนย์บริการคนพิการ">ศูนย์บริการคนพิการ</option>
+                      <option value="Telemedicine">Telemedicine</option>
+                      </optgroup>
+                  </select>
+                </div>
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">HN</label><input type="text" name="hn" class="input-field" placeholder="ระบุเลข HN" required></div>
+                <div id="an-container" class="hidden"><label class="block text-sm font-bold text-gray-700 mb-1">AN</label><input type="text" name="an" class="input-field" placeholder="ระบุเลข AN"></div>
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">ห้องตรวจ / หอผู้ป่วย</label>
+                  <select name="ward" class="input-field" required>
+                    <option value="">-- เลือกหอผู้ป่วย --</option><option value="ER">ER</option><option value="ICU">ICU</option><option value="OPD ฟื้นฟู">OPD ฟื้นฟู</option><option value="OR">OR</option><option value="Stroke Unit">Stroke Unit</option><option value="กุมารเวชกรรม">กุมารเวชกรรม</option><option value="คลินิกสังคมสงเคราะห์">คลินิกสังคมสงเคราะห์</option><option value="จิตเวช">จิตเวช</option><option value="ตา หู คอ จมูก (EENT)">ตา หู คอ จมูก (EENT)</option><option value="ไตเทียม">ไตเทียม</option><option value="ทันตกรรม">ทันตกรรม</option><option value="ทารกแรกเกิด (SNB)">ทารกแรกเกิด (SNB)</option><option value="ศสม.">ศสม.</option><option value="ศัลยกรรมกระดูก">ศัลยกรรมกระดูก</option><option value="ศัลยกรรมชาย">ศัลยกรรมชาย</option><option value="ศูนย์บริจาคอวัยวะ">ศูนย์บริจาคอวัยวะ</option><option value="สูตินรีเวชกรรม">สูตินรีเวชกรรม</option><option value="ห้องคลอด">ห้องคลอด</option><option value="ห้องตรวจ OPD">ห้องตรวจ OPD</option><option value="หอผู้ป่วยพิเศษ">หอผู้ป่วยพิเศษ</option><option value="อายุรกรรมชาย">อายุรกรรมชาย</option><option value="อายุรกรรมหญิง">อายุรกรรมหญิง</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-sky-50 px-5 py-3 border-l-4 border-[#3d82af]"><h2 class="font-bold text-[#3d82af]">2. ข้อมูลผู้ใช้บริการ</h2></div>
+              <div class="p-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <div class="md:col-span-2"><label class="block text-sm font-bold text-gray-700 mb-1">ชื่อ - นามสกุล</label><input type="text" name="fullName" class="input-field" placeholder="ระบุชื่อและนามสกุล" required></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">เลขบัตรประชาชน / Passport</label><input type="text" name="idCard" class="input-field" placeholder="เลข 13 หลัก"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">วันเดือนปีเกิด (ดึงอายุอัตโนมัติ)</label><input type="date" id="dobInput" name="dob" class="input-field" onchange="calculateAge()"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">อายุ</label><input type="text" id="ageDisplay" class="input-field bg-gray-50" placeholder="คำนวณอัตโนมัติ" readonly><input type="hidden" id="ageInput" name="age"></div>
+                  <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">กลุ่มเป้าหมาย</label>
+                    <select name="targetGroup" class="input-field" required>
+                      <option value="">-- เลือกกลุ่มเป้าหมาย --</option><option value="1.ผู้ใช้บริการทั่วไป">1.ผู้ใช้บริการทั่วไป</option><option value="2.ผู้ป่วยทั่วไป">2.ผู้ป่วยทั่วไป</option><option value="3.ผู้ป่วยโรคเรื้อรัง">3.ผู้ป่วยโรคเรื้อรัง</option><option value="4.OSCC">4.OSCC</option><option value="5.ผู้ติดสารเสพติด">5.ผู้ติดสารเสพติด</option><option value="6.ผู้ป่วยประสบอุบัติเหตุจากการทำงาน">6.ผู้ป่วยประสบอุบัติเหตุจากการทำงาน</option><option value="7.คนพิการ">7.คนพิการ</option><option value="8.ผู้ป่วยจิตเวช">8.ผู้ป่วยจิตเวช</option><option value="9.ผู้ที่ได้รับบาดเจ็บจากการกระทำโดยประมาทของผู้อื่น">9.ผู้ที่ได้รับบาดเจ็บจากการกระทำโดยประมาทของผู้อื่น</option><option value="10.ผู้ติดเชื้อเอชไอวี/เอดส์">10.ผู้ติดเชื้อเอชไอวี/เอดส์</option><option value="11.ผู้ไม่มีหลักประกัน/มีปัญหาการใช้สิทธิ์">11.ผู้ไม่มีหลักประกัน/มีปัญหาการใช้สิทธิ์</option><option value="12.ผู้ป่วยมะเร็ง">12.ผู้ป่วยมะเร็ง</option><option value="13.ผู้ป่วยระยะประคับประครองและระยะท้าย">13.ผู้ป่วยระยะประคับประครองและระยะท้าย</option><option value="14.ผู้ประสบปัญหาวิกฤตจากภัยพิบัติ">14.ผู้ประสบปัญหาวิกฤตจากภัยพิบัติ</option><option value="15.ผู้ป่วยวัณโรค/วัณโรคดื้อยา">15.ผู้ป่วยวัณโรค/วัณโรคดื้อยา</option><option value="16.ผู้ป่วยโรคอุบัติใหม่">16.ผู้ป่วยโรคอุบัติใหม่</option><option value="17.ผู้ป่วยตั้งครรภ์ไม่พึงประสงค์">17.ผู้ป่วยตั้งครรภ์ไม่พึงประสงค์</option><option value="18.ผู้ที่ได้รับผลกระทบจากการบริการด้านการแพทย์และสาธารณสุข">18.ผู้ที่ได้รับผลกระทบจากการบริการด้านการแพทย์และสาธารณสุข</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">สัญชาติ</label>
+                    <select id="nationalitySelect" name="nationalitySelect" class="input-field" onchange="checkNationality()">
+                      <option value="ไทย">ไทย</option><option value="เมียนมา">เมียนมา</option><option value="ลาว">ลาว</option><option value="กัมพูชา">กัมพูชา</option><option value="other">อื่นๆ (ระบุ)</option>
+                    </select>
+                    <input type="text" name="nationality" id="nationalityInput" value="ไทย" class="input-field mt-2 hidden" placeholder="ระบุสัญชาติ">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">สิทธิการรักษา</label>
+                    <select name="insurance" class="input-field" required>
+                      <option value="ประกันสุขภาพแห่งชาติ">ประกันสุขภาพแห่งชาติ (บัตรทอง)</option><option value="ประกันสังคม">ประกันสังคม</option><option value="เบิกจ่ายตรงกรมบัญชีกลาง">เบิกจ่ายตรงกรมบัญชีกลาง</option><option value="เบิกต้นสังกัด">เบิกต้นสังกัด</option><option value="รัฐวิสาหกิจ">รัฐวิสาหกิจ</option><option value="ประกันสุขภาพแรงงานต่างด้าว">ประกันสุขภาพแรงงานต่างด้าว</option><option value="ผู้มีปัญหาสถานะสิทธิ">ผู้มีปัญหาสถานะสิทธิ</option><option value="ไม่มีสิทธิ">ไม่มีสิทธิ</option>
+                    </select>
+                  </div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">โรค (ICD10)</label><input type="text" name="icd10" class="input-field" placeholder="ระบุชื่อโรค หรือรหัส"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">หมวด Z</label><input type="text" name="zCategory" class="input-field" placeholder="ระบุหมวด Z (ถ้ามี)"></div>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <p class="text-sm font-bold text-gray-800 mb-3 flex items-center">🏠 ที่อยู่ปัจจุบัน</p>
+                  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div><label class="text-xs text-gray-500 mb-1">จังหวัด</label><select id="province" name="province" class="input-field" required><option value="">-- โหลดข้อมูล --</option></select></div>
+                    <div><label class="text-xs text-gray-500 mb-1">อำเภอ</label><select id="district" name="district" class="input-field" required><option value="">-- โหลดข้อมูล --</option></select></div>
+                    <div><label class="text-xs text-gray-500 mb-1">ตำบล</label><select id="subDistrict" name="subDistrict" class="input-field" required><option value="">-- โหลดข้อมูล --</option></select></div>
+                    <div>
+                      <label class="text-xs text-gray-500 mb-1">หมู่ที่</label>
+                      <select name="moo" class="input-field"><option value="-">-</option><script>for(var i=1;i<=20;i++) document.write('<option value="'+i+'">'+i+'</option>');</script></select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-[#E3F2FD] px-6 py-4 border-l-8 border-[#3d82af] flex items-center"><span class="text-2xl mr-3">📋</span><h2 class="text-lg font-bold text-[#3d82af]">3. การวินิจฉัยปัญหาทางสังคม (Social Problem List)</h2></div>
+              <div class="p-4"><div class="bg-gray-50 p-3 rounded-xl border border-gray-200 h-96 overflow-y-auto custom-scrollbar shadow-inner" id="socialProblemContainer"></div>
+              <div class="mt-4"><label class="block text-sm font-bold text-gray-700 mb-1">รายละเอียดปัญหาเพิ่มเติม (Note)</label><textarea name="socialDetail" rows="2" class="input-field"></textarea></div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-blue-50 px-6 py-4 border-l-8 border-[#2c6385] flex items-center"><span class="text-2xl mr-3">🛠️</span><h2 class="text-lg font-bold text-[#2c6385]">4. บริการทางสังคม (Intervention)</h2></div>
+              <div class="p-4">
+                  <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 h-80 overflow-y-auto custom-scrollbar shadow-inner" id="interventionContainer"></div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-red-50 px-5 py-3 border-l-4 border-red-500"><h2 class="font-bold text-red-700">5. บันทึกบริการสงเคราะห์ (การเงิน)</h2></div>
+              <div class="p-5">
+                <div class="mb-4">
+                  <label class="block text-sm font-bold text-gray-700 mb-1">ประเภทบริการ (หากไม่มีให้ข้าม)</label>
+                  <select name="financeType" id="financeTypeSelect" class="input-field max-w-md" onchange="toggleFinanceDetails()">
+                    <option value="">-- ไม่ระบุ / ไม่มีการสงเคราะห์ --</option>
+                    <option value="อนุเคราะห์">อนุเคราะห์</option>
+                    <option value="ค้างชำระ">ค้างชำระ</option>
+                  </select>
+                </div>
+                
+                <div id="financeFieldsContainer" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-red-100 pt-4">
+                  <div class="md:col-span-3">
+                     <label class="block text-sm font-bold text-gray-700 mb-1">ประเภทบริการ (เพิ่ม)</label>
+                     <div class="flex flex-wrap gap-2">
+                         <label class="flex items-center space-x-2 cursor-pointer bg-white px-2 py-1.5 rounded border hover:border-red-300"><input type="checkbox" name="finType" value="อน.เจ้าหน้าที่" class="form-checkbox text-red-600 rounded"> <span class="text-xs font-bold text-gray-700">อน.เจ้าหน้าที่</span></label>
+                         <label class="flex items-center space-x-2 cursor-pointer bg-white px-2 py-1.5 rounded border hover:border-red-300"><input type="checkbox" name="finType" value="อน.หน่วยงานราชการ" class="form-checkbox text-red-600 rounded"> <span class="text-xs font-bold text-gray-700">อน.หน่วยงานราชการ</span></label>
+                         <label class="flex items-center space-x-2 cursor-pointer bg-white px-2 py-1.5 rounded border hover:border-red-300"><input type="checkbox" name="finType" value="อน.ผู้มีปัญหาสิทธิ์" class="form-checkbox text-red-600 rounded"> <span class="text-xs font-bold text-gray-700">อน.ผู้มีปัญหาสิทธิ์</span></label>
+                     </div>
+                  </div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">ค่ารักษา (เต็ม)</label><input type="number" name="totalCost" class="input-field"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">ชำระเอง</label><input type="number" name="copay" class="input-field"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">อนุเคราะห์</label><input type="number" name="assistAmount" class="input-field"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">ค้างชำระ (Balance)</label><input type="number" name="balance" class="input-field"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">สิทธิอื่น (ถ้ามี)</label><input type="text" name="otherRights" class="input-field"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">จำนวนวันนอน (วัน)</label><input type="number" name="los" class="input-field"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">หน่วยงาน</label><input type="text" name="agency" class="input-field"></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">ปัญหาการเงิน</label><input type="text" name="financeProblem" class="input-field"></div>
+                  <div class="md:col-span-3"><label class="block text-sm font-bold text-gray-700 mb-1">หมายเหตุการเงิน</label><textarea name="financeNote" rows="2" class="input-field"></textarea></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-green-50 px-6 py-4 border-l-8 border-green-500 flex items-center"><span class="text-2xl mr-3">🎯</span><h2 class="text-lg font-bold text-green-700">6. แผนการให้บริการและสถานะ</h2></div>
+              <div class="p-6 space-y-5">
+                <div><label class="block text-sm font-bold text-gray-700 mb-1">แผนการให้บริการ (Service Plan)</label><textarea name="servicePlan" rows="3" class="input-field"></textarea></div>
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <label class="block text-sm font-bold text-gray-700 mb-3">สถานะการให้บริการ</label>
+                  <div class="flex flex-wrap gap-4">
+                    <label class="flex items-center space-x-2 bg-white px-4 py-2 border rounded-full cursor-pointer hover:bg-green-50 hover:border-green-500 transition shadow-sm"><input type="radio" name="status" value="ยุติบริการ" class="form-radio text-green-600 h-5 w-5" required><span class="text-green-700 font-bold">ยุติบริการ</span></label>
+                    <label class="flex items-center space-x-2 bg-white px-4 py-2 border rounded-full cursor-pointer hover:bg-yellow-50 hover:border-yellow-500 transition shadow-sm"><input type="radio" name="status" value="อยู่ระหว่างการติดตาม" class="form-radio text-yellow-500 h-5 w-5"><span class="text-yellow-600 font-bold">อยู่ระหว่างการติดตาม</span></label>
+                    <label class="flex items-center space-x-2 bg-white px-4 py-2 border rounded-full cursor-pointer hover:bg-[#E3F2FD] hover:border-blue-500 transition shadow-sm"><input type="radio" name="status" value="กำลังให้บริการ" class="form-radio text-blue-600 h-5 w-5" checked><span class="text-blue-600 font-bold">กำลังให้บริการ</span></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-theme text-white font-bold py-4 rounded-xl hover-bg-theme shadow-md transition text-lg">💾 บันทึกข้อมูลเข้าสู่ระบบ</button>
+          </form>
+        </div>
+
+        <!-- ================= 2. หน้าติดตามเคส (Follow-up) ================= -->
+        <div id="page-followup" class="page-section">
+          <div class="mb-6"><h1 class="text-2xl font-bold text-gray-800 border-l-4 border-[#ff3f3e] pl-3">🔄 ค้นหาเคสเพื่อติดตาม (Follow-up)</h1></div>
+          
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mb-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <select id="fuSearchFY" class="input-field"><option value="">-- ทุกปีงบประมาณ --</option></select>
+            <select id="fuSearchMonth" class="input-field">
+                <option value="">-- ทุกเดือน --</option><option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option><option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option><option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option><option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+            </select>
+            <select id="fuSearchWorker" class="input-field">
+                <option value="">-- ทุกนักสังคมสงเคราะห์ --</option>
+                <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
+            </select>
+            <input type="text" id="fuSearchKeyword" placeholder="พิมพ์ HN หรือ ชื่อผู้ป่วย..." class="input-field md:col-span-3 lg:col-span-1">
+            <div class="md:col-span-3 lg:col-span-4 flex justify-end">
+                <button onclick="searchForFollowUp()" class="bg-[#3d82af] text-white px-6 py-2.5 font-bold rounded-lg shadow-sm hover:bg-[#2c6385] transition">ค้นหาเคส</button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <table class="w-full text-sm text-left whitespace-nowrap">
+              <thead class="bg-gray-100 text-gray-600 border-b border-gray-200">
+                <tr><th class="p-3">Record_ID</th><th class="p-3">วันที่ล่าสุด</th><th class="p-3">HN</th><th class="p-3">ชื่อ-สกุล</th><th class="p-3">หอผู้ป่วย / แผนก</th><th class="p-3">สถานะล่าสุด</th><th class="p-3 text-center">จัดการ</th></tr>
+              </thead>
+              <tbody id="fuTableBody" class="divide-y divide-gray-100">
+                <tr><td colspan="7" class="p-8 text-center text-gray-400">ระบุเงื่อนไขแล้วกดค้นหา</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Follow-up Modal -->
+        <div id="followUpModal" class="fixed inset-0 bg-gray-900/60 z-50 hidden flex justify-center items-center p-4">
+          <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] flex flex-col shadow-2xl">
+            <div class="bg-gradient-to-r from-[#3d82af] to-[#2c6385] p-4 text-white flex justify-between items-center rounded-t-2xl shrink-0">
+              <h3 class="font-bold text-lg flex items-center"><span class="mr-2">📝</span> บันทึกการติดตาม (อัปเดตข้อมูล)</h3>
+              <button onclick="document.getElementById('followUpModal').classList.add('hidden')" class="text-3xl leading-none hover:text-gray-200">&times;</button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-slate-50">
+              <form id="followUpForm" onsubmit="handleFormSubmit(event, 'saveFollowUpRecord')">
+                <input type="hidden" id="fu_recordId" name="recordIdUpdate"><input type="hidden" id="fu_hn" name="hnUpdate"><input type="hidden" id="fu_name" name="nameUpdate"><input type="hidden" id="fu_ward" name="wardUpdate">
+
+                <div class="mb-4 bg-white border border-blue-100 rounded-xl overflow-hidden shadow-sm flex items-center p-4">
+                  <div class="bg-blue-600 w-2 h-10 rounded mr-4"></div>
+                  <div class="grid grid-cols-2 gap-4 w-full">
+                    <p><span class="text-xs font-bold text-gray-500 block">ชื่อ-สกุลผู้ป่วย</span> <span id="fu_disp_name" class="font-bold text-blue-900 text-lg"></span></p>
+                    <p><span class="text-xs font-bold text-gray-500 block">HN</span> <span id="fu_disp_hn" class="font-bold text-[#3d82af]"></span></p>
+                  </div>
+                </div>
+
+                <div class="mb-6 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                  <div class="bg-gray-50 px-5 py-3 border-b border-gray-100 flex justify-between items-center">
+                    <h4 class="font-bold text-gray-700 flex items-center"><span class="mr-2 text-lg">📂</span> ข้อมูลทั่วไป (ดึงจากประวัติเดิม)</h4>
+                    <label class="flex items-center space-x-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:bg-blue-50 transition">
+                      <input type="checkbox" id="fu_edit_toggle" name="fu_edit_toggle" class="form-checkbox h-4 w-4 text-[#3d82af] rounded" onchange="toggleFuEditGeneral()">
+                      <span class="text-xs font-bold text-[#3d82af]">แก้ไขข้อมูลใหม่</span>
+                    </label>
+                  </div>
+                  
+                  <div class="p-5 text-sm">
+                    <input type="hidden" id="fu_old_dob" name="fu_old_dob"><input type="hidden" id="fu_old_med" name="fu_old_med"><input type="hidden" id="fu_old_icd10" name="fu_old_icd10"><input type="hidden" id="fu_old_z" name="fu_old_z"><input type="hidden" id="fu_old_prov" name="fu_old_prov"><input type="hidden" id="fu_old_dist" name="fu_old_dist"><input type="hidden" id="fu_old_subdist" name="fu_old_subdist">
+
+                    <div id="fu_view_mode" class="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-gray-600 block">
+                       <p><span class="font-bold text-gray-800">วันเดือนปีเกิด:</span> <span id="fu_disp_dob" class="ml-1 text-[#3d82af]">-</span> <span id="fu_disp_age" class="text-xs text-gray-500 ml-2 font-bold"></span></p>
+                       <p><span class="font-bold text-gray-800">สิทธิการรักษา:</span> <span id="fu_disp_med" class="ml-1">-</span></p>
+                       <p class="md:col-span-2"><span class="font-bold text-gray-800">ที่อยู่:</span> <span id="fu_disp_addr" class="ml-1">-</span></p>
+                       <p><span class="font-bold text-gray-800">ICD10:</span> <span id="fu_disp_icd10" class="ml-1 text-teal-700 font-bold">-</span></p>
+                       <p><span class="font-bold text-gray-800">หมวด Z:</span> <span id="fu_disp_z" class="ml-1 text-orange-600 font-bold">-</span></p>
+                    </div>
+
+                    <div id="fu_edit_mode" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div class="md:col-span-2">
+                         <label class="block text-xs font-bold text-gray-700 mb-1">ที่อยู่ (เลือกใหม่)</label>
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <select id="fu_province" name="fu_province" class="w-full border rounded p-2 focus:border-[#3d82af] text-xs"><option value="">-- จังหวัด --</option></select>
+                            <select id="fu_district" name="fu_district" class="w-full border rounded p-2 focus:border-[#3d82af] text-xs"><option value="">-- อำเภอ --</option></select>
+                            <select id="fu_subDistrict" name="fu_subDistrict" class="w-full border rounded p-2 focus:border-[#3d82af] text-xs"><option value="">-- ตำบล --</option></select>
+                         </div>
+                       </div>
+                       <div><label class="block text-xs font-bold text-gray-700 mb-1">วันเดือนปีเกิด</label><input type="date" id="fu_dob" name="fu_dob" class="w-full border rounded p-2 focus:border-[#3d82af] text-xs"></div>
+                       <div>
+                         <label class="block text-xs font-bold text-gray-700 mb-1">สิทธิการรักษา</label>
+                         <select id="fu_edit_med" name="fu_edit_med" class="w-full border rounded p-2 focus:border-[#3d82af] text-xs">
+                            <option value="ประกันสุขภาพแห่งชาติ">ประกันสุขภาพแห่งชาติ (บัตรทอง)</option><option value="ประกันสังคม">ประกันสังคม</option><option value="เบิกจ่ายตรงกรมบัญชีกลาง">เบิกจ่ายตรงกรมบัญชีกลาง</option><option value="เบิกต้นสังกัด">เบิกต้นสังกัด</option><option value="รัฐวิสาหกิจ">รัฐวิสาหกิจ</option><option value="ประกันสุขภาพแรงงานต่างด้าว">ประกันสุขภาพแรงงานต่างด้าว</option><option value="ผู้มีปัญหาสถานะสิทธิ">ผู้มีปัญหาสถานะสิทธิ</option><option value="ไม่มีสิทธิ">ไม่มีสิทธิ</option>
+                         </select>
+                       </div>
+                       <div><label class="block text-xs font-bold text-gray-700 mb-1">ICD10</label><input type="text" id="fu_edit_icd10" name="fu_edit_icd10" class="w-full border rounded p-2 focus:border-[#3d82af] text-xs"></div>
+                       <div><label class="block text-xs font-bold text-gray-700 mb-1">หมวด Z</label><input type="text" id="fu_edit_z" name="fu_edit_z" class="w-full border rounded p-2 focus:border-[#3d82af] text-xs"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">วันที่ติดตาม</label><input type="date" name="serviceDateUpdate" class="input-field text-sm" required></div>
+                  <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">นักสังคมฯ ที่ติดตาม</label>
+                    <select name="workerUpdate" class="input-field text-sm" required>
+                      <option value="">-- เลือกนักสังคมฯ --</option>
+                      <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="space-y-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-4">
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">ปัญหาที่พบเพิ่ม</label><div class="h-48 overflow-y-auto custom-scrollbar bg-gray-50 p-2 rounded-lg border border-gray-200" id="fuSocialContainer"></div></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">รายละเอียดปัญหาเพิ่มเติม (Note)</label><textarea name="socialDetailUpdate" rows="2" class="input-field text-sm"></textarea></div>
+                  <div><label class="block text-sm font-bold text-gray-700 mb-1">บริการที่ให้เพิ่ม</label><div class="h-48 overflow-y-auto custom-scrollbar bg-gray-50 p-2 rounded-lg border border-gray-200" id="fuInterventionContainer"></div></div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 overflow-hidden">
+                    <div class="bg-red-50 px-4 py-3 border-b border-red-100 flex items-center"><span class="mr-2">💰</span><h4 class="font-bold text-red-700 text-sm">อนุเคราะห์ค่ารักษาพยาบาล (ถ้ามี)</h4></div>
+                    <div class="p-4">
+                       <select name="financeType" id="fuFinanceTypeSelect" class="w-full max-w-md border rounded p-2 text-sm mb-3" onchange="toggleFuFinanceDetails()">
+                          <option value="">-- ไม่ระบุ / ไม่มีการสงเคราะห์ --</option><option value="อนุเคราะห์">อนุเคราะห์</option><option value="ค้างชำระ">ค้างชำระ</option>
+                       </select>
+                       
+                       <div id="fuFinanceFieldsContainer" class="hidden space-y-4 border-t border-red-100 pt-3">
+                         <div class="flex flex-wrap gap-2">
+                           <label class="flex items-center space-x-2 cursor-pointer bg-white px-2 py-1.5 rounded border hover:border-red-300"><input type="checkbox" name="finType" value="อน.เจ้าหน้าที่" class="form-checkbox text-red-600 rounded"> <span class="text-xs font-bold text-gray-700">อน.เจ้าหน้าที่</span></label>
+                           <label class="flex items-center space-x-2 cursor-pointer bg-white px-2 py-1.5 rounded border hover:border-red-300"><input type="checkbox" name="finType" value="อน.หน่วยงานราชการ" class="form-checkbox text-red-600 rounded"> <span class="text-xs font-bold text-gray-700">อน.หน่วยงานราชการ</span></label>
+                           <label class="flex items-center space-x-2 cursor-pointer bg-white px-2 py-1.5 rounded border hover:border-red-300"><input type="checkbox" name="finType" value="อน.ผู้มีปัญหาสิทธิ์" class="form-checkbox text-red-600 rounded"> <span class="text-xs font-bold text-gray-700">อน.ผู้มีปัญหาสิทธิ์</span></label>
+                         </div>
+                         <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
+                           <div><label class="block text-[10px] font-bold text-gray-600 mb-1">ค่ารักษาทั้งหมด</label><input type="number" name="totalCost" class="w-full border rounded p-1.5 text-xs"></div>
+                           <div><label class="block text-[10px] font-bold text-gray-600 mb-1">ใช้สิทธิได้/ร่วมจ่าย</label><input type="number" name="copay" class="w-full border rounded p-1.5 text-xs"></div>
+                           <div><label class="block text-[10px] font-bold text-gray-600 mb-1">อนุเคราะห์</label><input type="number" name="assistAmount" class="w-full border rounded p-1.5 text-xs"></div>
+                           <div><label class="block text-[10px] font-bold text-gray-600 mb-1">ค้างชำระ</label><input type="number" name="balance" class="w-full border rounded p-1.5 text-xs"></div>
+                           <div><label class="block text-[10px] font-bold text-gray-600 mb-1">หน่วยงาน</label><input type="text" name="agency" class="w-full border rounded p-1.5 text-xs"></div>
+                           <div><label class="block text-[10px] font-bold text-gray-600 mb-1">หมายเหตุ</label><input type="text" name="finNote" class="w-full border rounded p-1.5 text-xs"></div>
+                         </div>
+                       </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">แผนการทำงานต่อ (Plan)</label><textarea name="planUpdate" rows="2" class="input-field text-sm mb-4"></textarea>
+                    
+                    <label class="block text-sm font-bold text-gray-700 mb-2">📌 ปรับปรุงสถานะล่าสุด</label>
+                    <div class="flex gap-3">
+                        <label class="flex-1 text-center cursor-pointer bg-white px-3 py-3 border-2 rounded-xl hover:bg-green-50 hover:border-green-200 transition"><input type="radio" name="statusUpdate" value="ยุติบริการ" class="mr-1 hidden" required> <span class="text-green-700 font-bold text-sm">✅ ยุติบริการ</span></label>
+                        <label class="flex-1 text-center cursor-pointer bg-white px-3 py-3 border-2 rounded-xl hover:bg-yellow-50 hover:border-yellow-200 transition"><input type="radio" name="statusUpdate" value="อยู่ระหว่างการติดตาม" class="mr-1 hidden"> <span class="text-yellow-600 font-bold text-sm">🔄 ติดตามต่อ</span></label>
+                        <label class="flex-1 text-center cursor-pointer bg-white px-3 py-3 border-2 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition bg-blue-50 border-blue-200"><input type="radio" name="statusUpdate" value="กำลังให้บริการ" class="mr-1 hidden" checked> <span class="text-blue-600 font-bold text-sm">⏳ กำลังให้บริการ</span></label>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                  <button type="button" onclick="document.getElementById('followUpModal').classList.add('hidden')" class="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold border border-gray-300">ยกเลิก</button>
+                  <button type="submit" class="bg-theme text-white px-8 py-2.5 rounded-xl font-bold shadow-md hover-bg-theme">💾 บันทึกอัปเดต</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= 3. หน้าค้นหาประวัติ ================= -->
+        <div id="page-search" class="page-section">
+          <div class="mb-6"><h1 class="text-2xl font-bold text-gray-800 border-l-4 border-gray-500 pl-3">🔍 ค้นหาประวัติผู้ใช้บริการ</h1></div>
+          
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <select id="globalSearchFY" class="input-field"><option value="">-- ทุกปีงบประมาณ --</option></select>
+              <select id="globalSearchMonth" class="input-field">
+                  <option value="">-- ทุกเดือน --</option><option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option><option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option><option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option><option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+              </select>
+              <select id="globalSearchWorker" class="input-field">
+                  <option value="">-- ทุกนักสังคมสงเคราะห์ --</option>
+                  <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
+              </select>
+              <select id="globalSearchStatus" class="input-field">
+                  <option value="">-- ทุกสถานะ --</option><option value="กำลังให้บริการ">กำลังให้บริการ/อยู่ระหว่างติดตาม</option><option value="ยุติบริการ">ยุติบริการ</option>
+              </select>
+              <div class="md:col-span-3"><input type="text" id="globalSearchInput" placeholder="พิมพ์ HN, ชื่อ หรือเลขบัตร ปชช..." class="input-field"></div>
+              <div class="flex items-end"><button type="button" onclick="performSearch()" class="w-full bg-gray-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-sm hover:bg-gray-800 transition">ค้นหาข้อมูล</button></div>
+            </div>
+          </div>
+
+          <div id="searchResultArea" class="space-y-4">
+             <div class="text-center py-10 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300"><span class="text-4xl block mb-2">📭</span> ระบุเงื่อนไขและกดค้นหา</div>
+          </div>
+        </div>
+
+        <!-- ================= 4. หน้าออกรายงาน Excel ================= -->
+        <div id="page-export" class="page-section">
+          <div class="mb-6"><h1 class="text-2xl font-bold text-gray-800 border-l-4 border-green-500 pl-3">📥 ออกรายงาน Excel</h1></div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+               <div><label class="block text-sm font-bold text-gray-700 mb-1">ประเภทรายงาน</label><select id="reportType" class="input-field"><option value="service">สถิติการให้บริการ</option><option value="financial">สถิติการเงิน/อนุเคราะห์</option></select></div>
+               <div><label class="block text-sm font-bold text-gray-700 mb-1">ปีงบประมาณ</label><select id="val-fiscal" class="input-field"></select></div>
+               <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">เดือน</label>
+                  <select id="val-month" class="input-field">
+                     <option value="">-- ทุกเดือน --</option><option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option><option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option><option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option><option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+                  </select>
+               </div>
+               <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">นักสังคมสงเคราะห์</label>
+                  <select id="val-worker" class="input-field">
+                      <option value="">-- ทุกท่าน --</option>
+                      <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
+                  </select>
+               </div>
+            </div>
+            <div class="flex gap-3 mt-4 pt-4 border-t border-gray-100">
+               <button type="button" onclick="loadReportData()" class="bg-[#3d82af] text-white px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-[#2c6385] transition">🔍 ดึงข้อมูลตรวจสอบ</button>
+               <button type="button" onclick="exportToExcel()" class="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-sm hover:bg-green-700 transition">📊 ดาวน์โหลด Excel</button>
+            </div>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+             <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 font-bold text-gray-600 text-sm flex justify-between"><span>ตัวอย่างข้อมูล (Preview)</span><span id="reportCount" class="text-[#3d82af]">พบ 0 รายการ</span></div>
+             <div class="overflow-x-auto h-96 custom-scrollbar">
+                <table id="reportTable" class="w-full text-xs text-left whitespace-nowrap">
+                   <thead id="reportTableHead" class="bg-gray-100 text-gray-700 sticky top-0 shadow-sm"><tr><th class="p-3">กด "ดึงข้อมูลตรวจสอบ" ด้านบน</th></tr></thead>
+                   <tbody id="reportTableBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+             </div>
+          </div>
+        </div>
+        
+        <!-- ================= 5. หน้า Dashboard ================= -->
+        <div id="page-dashboard" class="page-section">
+          <div class="mb-4 flex justify-between items-center border-b pb-4">
+            <h1 class="text-2xl font-bold text-gray-800 border-l-4 border-[#3d82af] pl-3">📊 Dashboard สถิติสังคมสงเคราะห์</h1>
+            <button type="button" onclick="loadDashboard()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center hover:bg-gray-50"><span class="mr-2">🔄</span> รีเฟรชข้อมูล</button>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div><label class="block text-xs font-bold text-gray-500 mb-1">ปีงบประมาณ</label><select id="dashSearchFY" class="input-field py-2" onchange="loadDashboard()"><option value="">-- ทุกปีงบประมาณ --</option></select></div>
+              <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1">เดือน</label>
+                  <select id="dashSearchMonth" class="input-field py-2" onchange="loadDashboard()">
+                      <option value="">-- ทุกเดือน --</option><option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option><option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option><option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option><option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
+                  </select>
+              </div>
+              <div>
+                  <label class="block text-xs font-bold text-gray-500 mb-1">นักสังคมสงเคราะห์</label>
+                  <select id="dashSearchWorker" class="input-field py-2" onchange="loadDashboard()">
+                      <option value="">-- ทุกนักสังคมสงเคราะห์ --</option>
+                      <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
+                  </select>
+              </div>
+          </div>
+          
+          <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl px-4 pt-2 shadow-sm">
+            <button type="button" id="tab-btn-dash-overview" class="py-3 px-5 border-b-4 font-bold text-[#3d82af] border-[#3d82af] transition hover:bg-gray-50" onclick="switchDashTab('overview')">📊 สถิติภาพรวม</button>
+            <button type="button" id="tab-btn-dash-finance" class="py-3 px-5 border-b-4 font-medium text-gray-500 border-transparent hover:text-[#3d82af] hover:bg-gray-50 transition" onclick="switchDashTab('finance')">💰 ข้อมูลการเงิน</button>
+          </div>
+
+          <div id="dash-tab-overview" class="block">
+              <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 shadow-sm col-span-2 md:col-span-1"><p class="text-[11px] font-bold text-blue-600 uppercase tracking-wide">ผู้ใช้บริการทั้งหมด</p><div class="flex items-baseline mt-1"><h3 class="text-3xl font-black text-blue-800" id="kpiTotal">0</h3><span class="text-xs text-blue-500 ml-1">ครั้ง</span></div></div>
+                <div class="bg-white p-4 rounded-xl border-b-4 border-[#3d82af] shadow-sm"><p class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">ในเขต อ.ดำเนินสะดวก</p><h3 class="text-2xl font-black text-gray-800 mt-1" id="kpiLocIn">0</h3></div>
+                <div class="bg-white p-4 rounded-xl border-b-4 border-green-500 shadow-sm"><p class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">ยุติบริการ</p><h3 class="text-2xl font-black text-green-600 mt-1" id="kpiClosed">0</h3></div>
+                <div class="bg-white p-4 rounded-xl border-b-4 border-yellow-400 shadow-sm"><p class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">กำลังติดตาม</p><h3 class="text-2xl font-black text-yellow-500 mt-1" id="kpiTracking">0</h3></div>
+                <div class="bg-white p-4 rounded-xl border-b-4 border-red-500 shadow-sm"><p class="text-[11px] font-bold text-gray-500 uppercase tracking-wide">กำลังให้บริการ</p><h3 class="text-2xl font-black text-red-500 mt-1" id="kpiActive">0</h3></div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-[#3d82af] pl-2">สัดส่วนสัญชาติ</h3><div class="relative h-64"><canvas id="chartNationality"></canvas></div></div>
+                  <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-[#3d82af] pl-2">แผนภูมิพื้นที่ผู้รับบริการ</h3><div class="relative h-64"><canvas id="chartArea"></canvas></div></div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-[#3d82af] pl-2">ประเภทผู้ป่วย</h3><div class="relative h-64"><canvas id="chartPatientType"></canvas></div></div>
+                  <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-[#3d82af] pl-2">กลุ่มเป้าหมาย</h3><div class="relative h-64"><canvas id="chartTargetGroup"></canvas></div></div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-[#3d82af] pl-2">สถิติมูลปัญหาทางสังคม</h3><div class="relative h-80"><canvas id="chartProblems"></canvas></div></div>
+                  <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-[#3d82af] pl-2">สถิติการให้บริการ</h3><div class="relative h-80"><canvas id="chartInterventions"></canvas></div></div>
+              </div>
+
+              <div id="pendingCasesContainer" class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm mb-6 hidden">
+                  <div class="flex justify-between items-center border-b pb-2 mb-4">
+                      <h3 class="font-bold text-orange-600 flex items-center"><span class="mr-2 text-xl">⏳</span> รายการเคสค้าง/กำลังติดตาม</h3>
+                      <button type="button" onclick="copyPendingCases()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-1.5 px-3 rounded-lg shadow-sm border border-gray-300">📋 คัดลอกตาราง</button>
+                  </div>
+                  <div class="overflow-x-auto">
+                      <table id="pendingCasesTable" class="min-w-full text-sm">
+                          <thead class="bg-gray-50 border-b-2 border-gray-200"><tr><th class="py-2 px-3 text-left">วันที่</th><th class="py-2 px-3 text-left">HN</th><th class="py-2 px-3 text-left">ชื่อ-สกุล</th><th class="py-2 px-3 text-left">หอผู้ป่วย</th><th class="py-2 px-3 text-center">สถานะ</th></tr></thead>
+                          <tbody id="pendingCasesTableBody" class="divide-y divide-gray-100"></tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Tab 2: ข้อมูลการเงิน -->
+          <div id="dash-tab-finance" class="hidden">
+              <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-6">
+                <h3 class="font-bold text-red-700 mb-4 border-b pb-2">💰 ภาพรวมสถิติการอนุเคราะห์ค่ารักษาพยาบาลและค้างชำระ</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-xl text-center border border-gray-100"><h4 class="text-xs font-bold text-gray-500">ค่ารักษาเต็มจำนวน</h4><p id="dashTotalCost" class="text-xl font-black text-gray-800 mt-1">0.00 ฿</p></div>
+                    <div class="bg-blue-50 p-4 rounded-xl text-center border border-blue-100"><h4 class="text-xs font-bold text-blue-700">ชำระเอง</h4><p id="dashSelfPay" class="text-xl font-black text-blue-800 mt-1">0.00 ฿</p></div>
+                    <div class="bg-green-50 p-4 rounded-xl text-center border border-green-100"><h4 class="text-xs font-bold text-green-700">ยอดอนุเคราะห์</h4><p id="dashWelfare" class="text-xl font-black text-green-800 mt-1">0.00 ฿</p></div>
+                    <div class="bg-red-50 p-4 rounded-xl text-center border border-red-100"><h4 class="text-xs font-bold text-red-700">ยอดค้างชำระ</h4><p id="dashDebt" class="text-xl font-black text-red-800 mt-1">0.00 ฿</p></div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                 <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-red-500 pl-2">สัดส่วนประเภทบริการการเงิน</h3><div class="relative h-64"><canvas id="chartFinanceType"></canvas></div></div>
+                 <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><h3 class="font-bold text-gray-700 mb-4 border-l-4 border-red-500 pl-2">หอผู้ป่วยที่มีการสงเคราะห์สูงสุด</h3><div class="relative h-64"><canvas id="chartFinanceWard"></canvas></div></div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><h3 class="font-bold text-gray-700 mb-2 border-b pb-2 text-sm">📍 ที่อยู่ผู้รับบริการ (การเงิน)</h3><div class="overflow-y-auto h-48 custom-scrollbar"><table class="w-full text-xs text-left"><tbody id="finTableAddress" class="divide-y divide-gray-100"></tbody></table></div></div>
+                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><h3 class="font-bold text-gray-700 mb-2 border-b pb-2 text-sm">🎯 กลุ่มเป้าหมาย (การเงิน)</h3><div class="overflow-y-auto h-48 custom-scrollbar"><table class="w-full text-xs text-left"><tbody id="finTableTarget" class="divide-y divide-gray-100"></tbody></table></div></div>
+                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><h3 class="font-bold text-gray-700 mb-2 border-b pb-2 text-sm">🌎 สัญชาติ (การเงิน)</h3><div class="overflow-y-auto h-48 custom-scrollbar"><table class="w-full text-xs text-left"><tbody id="finTableNation" class="divide-y divide-gray-100"></tbody></table></div></div>
+                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm"><h3 class="font-bold text-gray-700 mb-2 border-b pb-2 text-sm">🩺 โรค ICD10 (การเงิน)</h3><div class="overflow-y-auto h-48 custom-scrollbar"><table class="w-full text-xs text-left"><tbody id="finTableICD" class="divide-y divide-gray-100"></tbody></table></div></div>
+              </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // ==========================================
+    // GAS JSON API CONFIG
+    // ==========================================
+    // นำ URL ของ Google Apps Script Web App (Deploy > New deployment > Web app)
+    // มาใส่แทนค่าด้านล่างนี้ และตั้งค่า API_SECRET_KEY ให้ตรงกับฝั่ง Code.gs
+    var GAS_API_URL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXXXXXXX/exec';
+    var GAS_API_KEY = 'swdn622';
+
+    // เรียกดึงข้อมูล (แทนที่ google.script.run.withSuccessHandler(...).FUNC())
+    function gasApiGet(action) {
+      var url = GAS_API_URL + '?action=' + encodeURIComponent(action) + '&key=' + encodeURIComponent(GAS_API_KEY);
+      return fetch(url).then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }).then(function(json) {
+        if (json && json.success === false) throw new Error(json.error || 'API error');
+        return json;
+      });
+    }
+
+    // เรียกบันทึก/แก้ไขข้อมูล (แทนที่ google.script.run.withSuccessHandler(...)[actionName](data))
+    // หมายเหตุ: ไม่ตั้ง Content-Type เป็น application/json เพื่อให้เป็น "simple request"
+    // และไม่ต้องผ่าน CORS preflight (Google Apps Script ไม่รองรับ OPTIONS)
+    function gasApiPost(action, payload) {
+      return fetch(GAS_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ key: GAS_API_KEY, action: action, payload: payload })
+      }).then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      });
+    }
+
+    // ==========================================
+    // INITIALIZATION (Safe Execute)
+    // ==========================================
+    document.addEventListener("DOMContentLoaded", function() {
+        try { document.getElementById('serviceDate').valueAsDate = new Date(); } catch(e){}
+        try { generateFiscalYearOptions(); } catch(e){}
+        
+        try {
+            generateAccordion(socialProblemsList, 'socialProblemContainer', 'socialProb', 'text-[#3d82af] focus:ring-[#3d82af]', 'bg-[#3d82af]');
+            generateAccordion(interventionsList, 'interventionContainer', 'serviceProvided', 'text-[#2c6385] focus:ring-[#2c6385]', 'bg-[#2c6385]');
+            generateAccordion(socialProblemsList, 'fuSocialContainer', 'socialProb', 'text-[#3d82af] focus:ring-[#3d82af]', 'bg-[#3d82af]');
+            generateAccordion(interventionsList, 'fuInterventionContainer', 'serviceProvidedUpdate', 'text-[#2c6385] focus:ring-[#2c6385]', 'bg-[#2c6385]');
+        } catch(e) {}
+        
+        try { toggleFinanceDetails(); } catch(e){}
+        try { toggleFuFinanceDetails(); } catch(e){}
+        try { toggleAN(); } catch(e){}
+        
+        loadAddressData().catch(function(e){});
+        
+        var radios = document.querySelectorAll('input[type=radio][name="statusUpdate"]');
+        for(var i=0; i<radios.length; i++) {
+            radios[i].addEventListener('change', function() {
+               var allRadios = document.querySelectorAll('input[type=radio][name="statusUpdate"]');
+               for(var j=0; j<allRadios.length; j++) {
+                   allRadios[j].parentElement.classList.remove('bg-blue-50','border-blue-200','bg-green-50','border-green-200','bg-yellow-50','border-yellow-200');
+               }
+               if(this.value==='ยุติบริการ') this.parentElement.classList.add('bg-green-50','border-green-200');
+               if(this.value==='อยู่ระหว่างการติดตาม') this.parentElement.classList.add('bg-yellow-50','border-yellow-200');
+               if(this.value==='กำลังให้บริการ') this.parentElement.classList.add('bg-blue-50','border-blue-200');
+            });
+        }
+    });
+
+    // ฟังก์ชันคำนวณและคืนค่าอายุเป็น "x ปี x เดือน"
+    function getAgeText(dobString) {
+        if(!dobString) return "";
+        var dob = new Date(dobString);
+        if(isNaN(dob.getTime())) return "";
+        var today = new Date();
+        var years = today.getFullYear() - dob.getFullYear();
+        var months = today.getMonth() - dob.getMonth();
+        var days = today.getDate() - dob.getDate();
+        if (days < 0) months--;
+        if (months < 0) { years--; months += 12; }
+        if (years < 0) return "0 ปี 0 เดือน";
+        return years + " ปี " + months + " เดือน";
+    }
+
+    // ==========================================
+    // UI Helpers
+    // ==========================================
+    function calculateAge() {
+        var dobInput = document.getElementById('dobInput');
+        var ageDisplay = document.getElementById('ageDisplay'); // ช่องแสดงผล
+        var ageInput = document.getElementById('ageInput');     // ช่องซ่อนตัวเลข
+        
+        if(!dobInput || !ageDisplay || !ageInput || !dobInput.value) return;
+        
+        var dob = new Date(dobInput.value);
+        var today = new Date();
+        
+        var years = today.getFullYear() - dob.getFullYear();
+        var months = today.getMonth() - dob.getMonth();
+        var days = today.getDate() - dob.getDate();
+        
+        if (days < 0) { months--; }
+        if (months < 0) { years--; months += 12; }
+        
+        if (years < 0) {
+            ageDisplay.value = "0 ปี 0 เดือน";
+            ageInput.value = 0; // บันทึกเป็น 0
+        } else {
+            ageDisplay.value = years + " ปี " + months + " เดือน";
+            ageInput.value = years; // บันทึกเป็นตัวเลขปีเต็ม (Integer) ลงชีต
+            
+            // 💡 คำแนะนำเพิ่มเติม: หากผู้ป่วยเป็นเด็กเล็ก (อายุ 0 ปี) สถิติอาจจะคลาดเคลื่อน 
+            // ถ้าต้องการเก็บบันทึกเป็นทศนิยมเผื่อไว้ (เช่น 1 ปี 6 เดือน = 1.5) 
+            // ให้เปลี่ยนบรรทัดบนเป็น: ageInput.value = (years + (months / 12)).toFixed(2);
+        }
+    }
+
+    function toggleFinanceDetails() {
+        var sel = document.getElementById('financeTypeSelect');
+        var box = document.getElementById('financeFieldsContainer');
+        if(!sel || !box) return;
+        if (sel.value === "") box.classList.add('hidden');
+        else box.classList.remove('hidden');
+    }
+    
+    function toggleFuFinanceDetails() {
+        var sel = document.getElementById('fuFinanceTypeSelect');
+        var box = document.getElementById('fuFinanceFieldsContainer');
+        if(!sel || !box) return;
+        if (sel.value === "") box.classList.add('hidden');
+        else box.classList.remove('hidden');
+    }
+
+    function toggleAN() {
+        var sel = document.getElementById('patientType');
+        var box = document.getElementById('an-container');
+        if(!sel || !box) return;
+        if (sel.value.indexOf('IPD') !== -1) { box.classList.remove('hidden'); } 
+        else { box.classList.add('hidden'); var inp = box.querySelector('input'); if(inp) inp.value = ''; }
+    }
+
+    function checkNationality() {
+        var sel = document.getElementById('nationalitySelect');
+        var inp = document.getElementById('nationalityInput');
+        if(!sel || !inp) return;
+        if (sel.value === 'other') { inp.classList.remove('hidden'); inp.value = ''; inp.focus(); } 
+        else { inp.classList.add('hidden'); inp.value = sel.value; }
+    }
+
+    function toggleSidebar() {
+      var sb = document.getElementById('sidebar');
+      var ov = document.getElementById('sidebarOverlay');
+      if(sb) sb.classList.toggle('-translate-x-full');
+      if(ov) ov.classList.toggle('hidden');
+    }
+    function toggleSidebarDesktop() {
+      var sb = document.getElementById('sidebar');
+      if(sb) sb.classList.toggle('md:hidden');
+    }
+
+    function switchTab(tabId, btnElement) {
+      var sections = document.querySelectorAll('.page-section');
+      for(var i=0; i<sections.length; i++) { sections[i].classList.remove('active'); }
+      var tgt = document.getElementById(tabId);
+      if(tgt) tgt.classList.add('active');
+      
+      if(btnElement) {
+        var items = document.querySelectorAll('.nav-item');
+        for(var j=0; j<items.length; j++) {
+            items[j].classList.remove('bg-white/20', 'text-white', 'font-bold');
+            items[j].classList.add('text-white/80');
+        }
+        btnElement.classList.add('bg-white/20', 'text-white', 'font-bold');
+        btnElement.classList.remove('text-white/80');
+        if (window.innerWidth < 768) toggleSidebar();
+      }
+      if(tabId === 'page-dashboard') loadDashboard();
+      if(tabId === 'page-followup') searchForFollowUp(); 
+    }
+
+    // ==========================================
+    // Dictionaries 
+    // ==========================================
+    var socialProblemsList = {
+        "00": { name: "00 ไม่มีปัญหาทางสังคม (No Social Problem) หรือยังไม่พบปัญหา", sub: [] },
+        "01": { name: "01 ปัญหาคู่สมรสและการครองเรือน", sub: ["0101 ปัญหาการสื่อสาร สื่อสารไม่เหมาะสม ไม่สามารถสื่อสารความต้องการของแต่ละฝ่ายได้ สื่อสารไม่ชัดเจน ทะเลาะเบาะแว้งกันเป็นประจำ พูดประชดประชัน ตำหนิติเตียน การด่าว่า ใช้วาจารุนแรง หยาบคาย การออกคำสั่ง บังคับขู่เข็ญ เจ้ากี้เจ้าการ เฉยเมย ไม่พูด ต่างคนต่างอยู่ ไม่สนใจกันและกัน", "0102 การใช้ความรุนแรง เช่น ทุบตี มีการกระทำทารุณระหว่างกัน", "0103 ความคิด ความเชื่อ ทัศนคติ จารีต ประเพณี วัฒนธรรมแตกต่างกัน ไม่สามารถปรับตัวเข้าหากัน ไม่ยอมรับหรือขาดความภูมิใจในคู่สมรส", "0104 ฝ่ายใดฝ่ายหนึ่งไม่รับผิดชอบครอบครัว ผูกพันกับครอบครัวเดิมหรือญาติเข้ามาวุ่นวายมากเกินไป", "0105 สามีหรือภรรยามีความสัมพันธ์กับชายหรือหญิงอื่นที่ไม่ใช่สามีหรือภรรยาตนเอง", "0106 ปัญหาเพศสัมพันธ์ เช่น ความต้องการทางเพศลดลง ปัญหาการร่วมเพศ ความเย็นชา หมดสมรรถภาพทางเพศ หรือมีพฤติกรรมเบี่ยงเบนทางเพศ เป็นต้น", "0107 อื่น ๆ"] },
+        "02": { name: "02 ปัญหาระหว่างบิดา มารดา บุตร", sub: ["0201 บิดา มารดา บุตรมีพฤติกรรมไม่เหมาะสม เช่น ติดสุรา ยาเสพติด เล่นการพนัน ทะเลาะเบาะแว้ง ดุด่ากันเป็นประจำ หนีโรงเรียน มีเพศสัมพันธ์ก่อนวัยอันควร รวมถึงบุตรถูกปล่อยปละละเลยหรือก้าวร้าวบิดา มารดา เป็นต้น", "0202 การอบรมเลี้ยงดู เช่น ไม่มีเวลาให้บุตร ให้ความสนใจน้อย เลี้ยงดูบุตรอย่างไม่คงเส้นคงวา ขัดแย้งกันเองในการเลี้ยงดู เปรียบเทียบความสามารถหรือพฤติกรรมของบุตรกับเด็กอื่น ๆ ปกป้องหรือตามใจบุตรมากเกินไป", "0203 ทัศนคติ เช่น ไม่ยอมรับ มีการรังเกียจหรืออับอายสังคม เนื่องจากโรคภัยไข้เจ็บ อาชีพ การศึกษาของฝ่ายใดฝ่ายหนึ่ง บิดาหรือมารดาอิจฉาบุตร รู้สึกว่าบุตรมาแย่งความรัก ความเอาใจใส่ไปจากตน รักบุตรไม่เท่ากันจนเกิดความลำเอียง ไม่เต็มใจไม่พร้อมและไม่ต้องการบุตร ขาดความสนใจ รวมถึงมุ่งหวังในตัวบุตรมากเกินไปจนเกินความสามารถของเด็ก เป็นต้น", "0204 เพศสัมพันธ์ในสายเลือดเดียวกัน", "0205 ปัญหาเกี่ยวกับการเป็นบุตรบุญธรรม", "0206 การกระทำทารุณกรรมต่อกันทั้งทางร่างกาย จิตใจอารมณ์ หรือทางเพศ การทอดทิ้งปล่อยปละละเลย บังคับขู่เข็ญ ดุด่าหรือทำโทษบุตรเกินกว่าเหตุ ใช้งานเกินความสามารถ เข้มงวดหรือควบคุมบุตรมากเกินไป", "0207 บิดาหรือมารดาขาดความรู้ ความเข้าใจและทักษะเรื่องพัฒนาการตามวัย เพศ การสื่อสาร และกรณีเด็กพิเศษ", "0208 บิดา มารดา บุตรมีความผิดปกติทางด้านบุคลิกภาพ อารมณ์ หรือมีความเจ็บป่วยทางจิต", "0209 อื่น ๆ"] },
+        "03": { name: "03 ปัญหาความแตกแยกในครอบครัว", sub: ["0301 ปัญหาการหย่า / ร้าง", "0302 การแยกกันอยู่เพราะเหตุผลต่าง ๆ เช่น โรคภัยไข้เจ็บเรื้อรัง หน้าที่การงาน ฝ่ายใดฝ่ายหนึ่งไม่ปฏิบัติตามบทบาทหน้าที่ที่รับผิดชอบ จนทำให้อีกฝ่ายต้องรับภาระเกินความสามารถ หรืออยู่ในภาวะที่เกิดความทุกข์ สามีมีภรรยาน้อย ภรรยามีชู้ ถูกกฎหมายลงโทษ ฝ่ายใดฝ่ายหนึ่งทอดทิ้งไป เช่น ไปศึกษาต่อเป็นเวลานาน ๆ หรือบุตรนอกสมรส เป็นต้น", "0303 การเสียชีวิตของสมาชิกในครอบครัว", "0304 การสูญหายของสมาชิกในครอบครัว", "0305 อื่น ๆ"] },
+        "04": { name: "04 ปัญหาความสัมพันธ์ระหว่างเครือญาติ", sub: ["0401 การไม่เข้าใจกันระหว่างญาติพี่น้อง มีการทะเลาะกันเป็นประจำ ไม่ไว้วางใจกันจนทำให้เกิดความแตกร้าวระหว่างญาติพี่น้อง", "0402 การหวังผลประโยชน์ เช่น แย่งชิงทรัพย์สินมรดก กลั่นแกล้งใส่ร้าย ข่มขู่ทำร้ายกัน", "0403 ปัญหาระหว่างญาติของสามีหรือภรรยา เช่น แม่สามีกับลูกสะใภ้ แม่ยายกับลูกเขย", "0404 อื่น ๆ"] },
+        "05": { name: "05 ปัญหาความรัก", sub: ["0501 ผิดหวังในความรัก เช่น ถูกปฏิเสธ / ตัดสัมพันธ์ ถูกหลอกลวง ปิดบัง ทำให้ผิดหวังจากความรัก", "0502 ขัดแย้งกับคนรัก", "0503 การสูญเสีย พลัดพรากจากคนรัก", "0504 แอบรักเขาข้างเดียว อยากมีคนรัก / คู่ชีวิต", "0505 รักสามเส้า / มีคนรักหลายคนในเวลาเดียวกัน (มีกิ๊ก)", "0506 กลัว วิตกกังวลเรื่องความรักและการมีชีวิตคู่", "0507 อื่น ๆ"] },
+        "06": { name: "06 ปัญหาทางเพศ", sub: ["0601 ถูกข่มขืน / ถูกล่วงละเมิดทางเพศ", "0602 เพศสัมพันธ์ไม่เหมาะสม เช่น มีเพศสัมพันธ์ก่อนวัยอันควร เพศสัมพันธ์หมู่ มีพฤติกรรมทางเพศรุนแรงกว่าปกติ", "0603 ไม่พอใจในเพศของตนเอง", "0604 ความผิดปกติทางเพศ เช่น ถ้ำมอง ลักขโมยชุดชั้นใน ชอบโชว์อวัยวะเพศ", "0605 อื่น ๆ"] },
+        "07": { name: "07 ภาระในการดูแลผู้เจ็บป่วย / ผู้พิการ / ผู้สูงอายุ", sub: ["0701 มีสมาชิกในครอบครัวสูงอายุที่ต้องดูแล จนทำให้เกิดปัญหาสุขภาพจิต", "0702 มีสมาชิกในครอบครัวเจ็บป่วยเรื้อรัง พิการทางกาย / จิต หรือสารเสพติด", "0703 อื่น ๆ"] },
+        "08": { name: "08 ปัญหาที่อยู่อาศัย / สภาพแวดล้อมที่เป็นภัยต่อสุขภาพ", sub: ["0801 ไม่มีบ้าน", "0802 สภาพบ้านที่อยู่ไม่เหมาะสมและไม่ถูกสุขลักษณะ ได้แก่ คับแคบ แออัดยัดเยียด ไม่เป็นสัดส่วน สกปรกรุงรัง อากาศไม่ถ่ายเท หรืออุปกรณ์ก่อสร้างไม่ถูกสุขลักษณะ ใช้วัสดุซึ่งมีโอกาสเป็นพาหะนำเชื้อโรคได้ง่ายหรือมีสารพิษ วัสดุผุพัง วัสดุจากกองขยะ", "0803 สภาพแวดล้อมในบ้านก่อให้เกิดการยั่วยุทางกามารมณ์ เช่น ติดรูปโป๊ VDO โป๊ อยู่ในแหล่งเสื่อมโทรม แหล่งยาเสพติด สถานเริงรมย์ มีเสียงรบกวน เพื่อนบ้านรังแก", "0804 สภาพแวดล้อมเป็นพิษ เช่น กลิ่นเหม็นจากโรงงาน น้ำเป็นพิษ สารพิษ เสียงรบกวน", "0805 การเปลี่ยนที่อยู่อาศัยโดยสมัครใจ เช่น มีโรคภัยไข้เจ็บเกรงเพื่อนบ้านรังเกียจ เปลี่ยนอาชีพ เช่น ไปหางานทำ ไม่อยากอยู่บ้าน กลัวเกิดคดีฆ่าล้างแค้น ถูกเพื่อนบ้านรังแก", "0806 การเปลี่ยนที่อยู่อาศัยโดยไม่สมัครใจ เช่น ถูกไล่ออกจากบ้าน ถูกไล่ที่ / ที่อยู่อาศัย เวนคืนที่ดิน", "0807 ผู้ป่วยเร่ร่อนที่เข้ารับการรักษาในโรงพยาบาล รวมไปถึงผู้ป่วยตาม พรบ.สุขภาพจิตปี 2551 (มีญาติและไม่มีญาติ)", "0808 อื่น ๆ"] },
+        "09": { name: "09 ปัญหาที่เกิดจากบุคคลอื่นนอกครอบครัว", sub: ["0901 การไม่สามารถเข้ากับเพื่อน เพื่อนบ้าน ผู้พักร่วม และเจ้าของบ้านเช่าได้", "0902 ถูกแสดงความรังเกียจ หลอกลวง ถูกเอารัดเอาเปรียบ กลั่นแกล้ง ยุยงใส่ร้าย ข่มขู่ทำร้ายจนทำให้รู้สึกเป็นศัตรูกัน ถูกสังคมรังเกียจ ดูถูก ล้อเลียน กลั่นแกล้ง ถูกนินทา ว่าร้าย ถูกปรักปรำ ใส่ร้าย", "0903 ถูกปฏิเสธหรือตัดความสัมพันธ์จากคนที่รักใคร่สนิทสนม ไม่ใช่คนรักในข้อที่ 05", "0904 การเสียชีวิต หรือพลัดพรากจากคนที่รักใคร่สนิทสนม ไม่ใช่คนรักในข้อที่ 05", "0905 อื่น ๆ"] },
+        "10": { name: "10 ปัญหาการเงิน", sub: ["1001 ไม่มีรายได้ / รายได้ไม่เพียงพอต่อการครองชีพ ค่าเล่าเรียน ค่าเช่าบ้าน ค่าที่พัก รวมถึงขาดแคลนเงินทุนในการประกอบอาชีพ", "1002 มีหนี้สิน", "1003 ปัญหาค่าใช้จ่ายในการรักษาพยาบาล เช่น ค่าตรวจรักษาพยาบาล ค่าพาหนะ เป็นต้น", "1004 ถูกโกง ถูกหลอกลวงให้เสียทรัพย์", "1005 อื่น ๆ"] },
+        "11": { name: "11 ปัญหาการศึกษา", sub: ["1101 พฤติกรรมไม่สนใจเรียน เช่น เด็กติดเกมส์ หนีเที่ยว ติดยาเสพติด", "1102 มีปัญหาการเรียนอันเกิดจากความเจ็บป่วย เช่น สมาธิสั้น สติปัญญาไม่ดี มีปัญหาทางสมอง ได้รับอุบัติเหตุ ฯลฯ", "1103 ไม่ประสบความสำเร็จทางด้านการศึกษาตามที่หวังไว้ เช่น สอบตก เอนทรานซ์ไม่ติด เป็นต้น", "1104 ขาดโอกาสทางการศึกษา เนื่องจากไม่มีค่าอุปกรณ์ หรือค่าเล่าเรียน การคมนาคมไม่สะดวก ระบบการศึกษาไม่เอื้ออำนวย ปัญหาเรื่องระบบการจัดการเงินทุนเพื่อการศึกษา สถานการศึกษาไม่สามารถทำหน้าที่ได้ตามปกติ การก่อการร้าย ภัยพิบัติต่าง ๆ บิดา มารดาไม่สนับสนุนหรือไม่เห็นความสำคัญการศึกษาของบุตร", "1105 มีปัญหากับครู / เพื่อน / รุ่นพี่ เช่น ครูไม่เข้าใจเด็ก", "1106 อื่น ๆ"] },
+        "12": { name: "12 ปัญหาการประกอบอาชีพ", sub: ["1201 ไม่มีงานทำ เนื่องจาก เลือกงาน เปลี่ยนงานบ่อย ตกงาน ไม่อยากทำงาน หรือต้องเลี้ยงดูบุตรในครอบครัว", "1202 ไม่สามารถปรับตัวเข้ากับเพื่อนร่วมงาน / นายจ้าง / งานได้", "1203 รายได้ไม่เป็นธรรม สวัสดิการไม่ดี งานหนักเกินไป การเอาเปรียบแรงงาน ถูกหลอกขายแรงงาน", "1204 ความไม่มั่นคง หรือล้มเหลวในการประกอบอาชีพ เช่น ขาดทุน ล้มละลาย ประสบภัยพิบัติ ไม่มีที่ทำกิน งานไม่ตรงกับความสามารถ เป็นต้น", "1205 อื่น ๆ"] },
+        "13": { name: "13 ปัญหาทางกฎหมาย", sub: ["1301 ปัญหาเกี่ยวกับกฎหมายแพ่งและกฎหมายอาญา เช่น การถูกจับ การฟ้องร้อง การดำเนินคดี การขอเป็นผู้พิทักษ์ ผู้อนุบาล การถูกหลอกลวงให้สูญเสียทรัพย์สิน อวัยวะ ชื่อเสียง การละเมิดสิทธิผู้ป่วยในการรักษาพยาบาล เป็นต้น", "1302 ไม่ได้รับสิทธิการคุ้มครองตามกฎหมายประกันสังคม คุ้มครองความปลอดภัย และสุขภาพอนามัยของผู้ทำงานที่เอาประกัน หรือผู้ทำงานเสี่ยงบางประเภท รวมถึงค่าเสียหาย ค่าตอบแทนเงินชดเชยอุบัติเหตุจากการทำงาน ทำให้เสียผลประโยชน์หรือเดือดร้อน การถูกหลอกมาใช้งานหรือเป็นโสเภณี", "1303 ไม่ได้รับสิทธิและคุ้มครองตาม พ.ร.บ.ฟื้นฟูคนพิการ / พ.ร.บ.สุขภาพจิต ปี 2551 / พ.ร.บ.ส่งเสริมคุณภาพชีวิตคนพิการ ฯลฯ", "1304 ไม่ได้รับสิทธิคุ้มครองด้านการรักษาพยาบาลตามหลักประกันสุขภาพ", "1305 ไม่ได้รับสิทธิและความคุ้มครองตามกฎหมายอาญา ไม่มีสถานภาพทางกฎหมาย เช่น ไม่มีบัตรประชาชน ไม่มีทะเบียนบ้าน ไม่มีทะเบียนสมรส ไม่มีสูติบัตร", "1306 ผู้ป่วยเข้าเมืองผิดกฎหมาย / ต่างด้าว / ต่างชาติ", "1307 อื่น ๆ"] },
+        "14": { name: "14 ปัญหาที่เป็นอุปสรรคต่อการดูแลสุขภาพของผู้ป่วย", sub: ["1401 ผู้ป่วยหรือญาติขาดความรู้ความเข้าใจเกี่ยวกับโรคและการดูแลรักษาที่เหมาะสม เช่น ไม่ยอมรับการเจ็บป่วย ไม่ร่วมมือในการฝึกฟื้นฟูสุขภาพตนเอง ไม่ได้รับประทานยาตามแพทย์สั่ง ไม่ได้รับการรักษาต่อเนื่อง เป็นต้น", "1402 การสื่อภาษา การแปลความหมายของภาษาท้องถิ่นไม่เข้าใจ หรือเข้าใจผิด", "1403 ผู้ป่วยหรือญาติกลัวถูกสังคมรังเกียจ อับอาย ถูกตีตรา", "1404 ไม่ได้รับความสะดวกในการขอรับบริการสาธารณสุข เช่น การให้ข้อมูลบริการไม่ชัดเจน / ไม่ให้ข้อมูล มีปัญหาในการขอใบส่งต่อ ไม่มีการนัดต่อ การนัดหมายครั้งต่อไปนานเกินไปหรือไม่ต่อเนื่อง มาผิดวัน / ผิดเวลาทำให้ไม่ได้รับการรักษา เป็นต้น", "1405 การขาดผู้ดูแลหรือไม่พร้อมในการดูแล เช่น ผู้ดูแลเป็นผู้สูงอายุ ผู้ดูแลต้องทำงาน เป็นต้น", "1406 ญาติปฏิเสธการดูแล รู้สึกเป็นภาระ / เกี่ยงกันดูแล คนที่ไม่มีอำนาจต่อรองหรือสมยอมจะต้องรับผิดชอบ / รังเกียจ หวาดกลัวผู้ป่วย", "1407 ผู้ป่วยสมองเสื่อม / ผู้ป่วยจิตเวชยุ่งยากซับซ้อนเรื้อรัง / ผู้ป่วยพิการ / ต่างด้าว / ต่างชาติ จำหน่ายยาก / ไม่ได้", "1408 อื่น ๆ"] },
+        "15": { name: "15 ปัญหาความเชื่อ วัฒนธรรม และการเมือง", sub: ["1501 มีความเชื่อที่มีผลต่อการเจ็บป่วยทางจิตและการรักษา เช่น เชื่อว่าถูกกระทำทางไสยศาสตร์ เชื่อว่าตนเองเป็นร่างทรง รวมทั้งความเชื่อให้การรักษาทางด้านไสยศาสตร์ต่าง ๆ", "1502 มีความขัดแย้งทางการเมือง", "1503 การถูกปฏิเสธและไม่ได้รับการยอมรับจากสังคม เช่น รักเพศเดียวกัน กลัวสังคมรังเกียจ (ขึ้นอยู่กับบริบทของสังคม)", "1504 การปรับตัวเข้าสู่สังคมและวัฒนธรรมใหม่ เช่น การย้ายถิ่นไปประกอบอาชีพ การศึกษาท่องเที่ยว", "1505 อื่น ๆ"] },
+        "16": { name: "16 ปัญหาสารเสพติด / สารที่ออกฤทธิ์ต่อจิตประสาท", sub: ["1601 การใช้สุรา และแอลกอฮอล์", "1602 การใช้สารเสพติด เช่น ยาบ้า เฮโรอีน กัญชา ดมกาว ฯลฯ", "1603 การใช้ยาลดความอ้วน", "1604 การถูกบังคับหรือถูกหลอกให้ใช้ / จำหน่ายสารเสพติด", "1605 กลับไปเสพซ้ำ", "1606 อื่น ๆ"] },
+        "17": { name: "17 ปัญหาที่เป็นปรากฏการณ์ทางสังคม ปัญหาอื่น ๆ เกี่ยวกับสภาวะทางจิตและสังคม", sub: ["1701 ตั้งครรภ์ไม่พึงประสงค์", "1702 ตั้งครรภ์ในวัยรุ่น (ต่ำกว่า 18 ปี)", "1703 การถูกหลอกใช้แรงงาน (แรงงานเด็ก , แรงงานข้ามชาติ)", "1704 ปัญหาการค้าประเวณี / ค้ามนุษย์", "1705 เจ็บป่วยด้วยโรคทางกายที่ต้องการปิดบัง / เรื้อรังที่มีผลต่อสภาพจิตใจ เช่น โรคเอดส์ โรคเรื้อน โรคมะเร็ง โรคเบาหวาน วัณโรค ฯลฯ", "1706 ภัยพิบัติต่าง ๆ (วิกฤติทางเศรษฐกิจ – การเมือง , วิกฤติสุขภาพจิต เช่น ภัยธรรมชาติ ภัยจากน้ำมือมนุษย์)", "1707 สถานการณ์การก่อการร้าย เช่น การวางระเบิดตามสถานที่ต่าง ๆ", "1708 อุบัติเหตุที่รุนแรง เช่น เครื่องบินตก ตึกถล่ม รถชน ฯลฯ", "1709 อื่น ๆ"] }
+    };
+
+    var interventionsList = {
+        "1": { name: "1. การบำบัดทางสังคม และสร้างเสริมพลังอำนาจ (empowerment)", sub: [
+"111 การให้แนะนำ/ความรู้/ (Advice, Guidance) ด้านสวัสดิการสังคม", "112 การให้ความรู้ทางกฎหมาย/พรบ. ที่เกี่ยวข้อง", "113 การให้ความรู้เกี่ยวกับเพศศึกษา (Sex Education)", "114 การให้ความรู้เกี่ยวกับการดูแลทางสังคมของผู้ป่วย", "115 การให้การปรึกษา (Counseling) ของนักสังคมสงเคราะห์ < 30 นาที", "116 การให้คำปรึกษา (Counseling) ของนักสังคมสงเคราะห์ > 30นาที", "117 การให้ปรึกษาเกี่ยวกับบทบาทครอบครัว< 30 นาที", "118 การให้ปรึกษาคู่สมรส > 30 นาที", "119 การให้ปรึกษาคู่สมรส < 30 นาที",
+"120 การให้การปรึกษาและช่วยเหลือทางสังคม", "121 จัดทำกลุ่ม เสริมพลังครอบครัว/ญาติ/ผู้ดูแล", "122 จัดทำกลุ่มเพื่อนช่วยเพื่อน (Peer Group)", "123 จัดทำกลุ่มเสริมกำลังใจ (Group Support)", "124 จัดทำกลุ่มสันทนาการ", "125 จัดทำกลุ่มบำบัด", "126 จัดทำกลุ่ม กลุ่มบำบัด (ครอบครัวบำบัด)", 
+"127 จัดทำกลุ่มกลุ่มบำบัด (ศิลปะบำบัด)", "128 จัดทำกลุ่มกลุ่มบำบัด (จิตบำบัด)", "129 จัดทำกลุ่มให้คำปรึกษาครอบครัว (Family Group Csg.)", "130 จัดทำกลุ่มพิทักษ์สิทธิ เช่น หลักประกันสุขภาพ ฯลฯ", "131 จัดทำกลุ่มคุ้มครองสิทธิ เช่น คุ้มครองเด็ก ตามพรบ.", "132 การเจรจาต่อรองในภาวะวิกฤติ (MCC)",
+"133 การเจรจาต่อรอง/ไกล่เกลี่ย"] },
+        "2": { name: "2. การฟื้นฟูสมรรถภาพทางสังคม(social rehabilitation)", sub: [
+"211 การฟื้นฟูสมรรถภาพทางสังคมรายกลุ่ม", "212 การฟื้นฟูสมรรถภาพทางสังคมรายบุคคล", "213 จัดทำกลุ่มฝึกทักษะทางสังคม (Social skills)", "214 จัดทำกลุ่มฝึกทักษะชีวิต (Life Skills)", "215 สร้างทักษะ/วิธีการปรับเปลี่ยนพฤติกรรม/ปรับทัศนคติที่ดี รายบุคคล", "216 การสร้างสัมพันธภาพและการเสริมแรงจูงใจในการรักษา รายบุคคล", "217 การสร้างเสริมสุขอนามัยส่วนบุคคล", "218 สุขภาพจิตศึกษา รายบุคคล", 
+"219 การฟื้นฟูทักษะชีวิต รายบุคคล", "220 การเพิ่มทักษะชีวิตในการดูแลสุขภาพ", "221 ฝึกทักษะการแก้ไขปัญหา รายบุคคล", "222 ฝึกทักษะการดำรงชีวิต เช่น การอาบน้ำ การแต่งกาย การรับประทานอาหาร รายบุคคล", "223 ฝึกทักษะพื้นฐานในการประกอบอาชีพ รายบุคคล (pre-vocational training, individual)", "224 ฝึกทักษะพื้นฐานในการประกอบอาชีพ แบบกลุ่ม (pre-vocational training, group)", "225 ฝึกทดลองงานทั้งในสถานพยาบาลและสถานประกอบการ", "226 การให้การปรึกษาแนะนำในระหว่างประกอบอาชีพ (job coach)", "227 ทักษะพื้นฐานการทำงานและส่งเสริมการประกอบอาชีพ อิสระ (ฝึกอาชีพ)", "228 ส่งต่อเครือข่ายทางสังคมให้มีส่วนร่วมในการฟื้นฟูฯ"] },
+        "3": { name: "3. การคุ้มครองสิทธิ์ทางสังคม และการจัดการทรัพยากรทางสังคม (Social Resources Management)", sub: ["311 พิจารณาค่ารักษาพยาบาล", "312 ค่าพาหนะเดินทางกลับบ้าน/มารับบริการ", 
+"313 ค่าครองชีพชั่วคราว", "314 เครื่องอุปโภค/บริโภค", "315 สงเคราะห์ครอบครัว", "316 จัดหา/สงเคราะห์เงินซื้อกายอุปกรณ์และเครื่องช่วยความพิการ", "317 จัดหา/สงเคราะห์เงินซื้ออุปกรณ์ทางการแพทย์/วัสดุการแพทย์", "318 สงเคราะห์เงินทุนประกอบอาชีพ", "319 จัดหาเบี้ยยังชีพ", "320 จัดหา/สงเคราะห์ทุนการศึกษา", "321 จัดหาที่อยู่อาศัยชั่วคราว / ถาวร", "322 จัดหาสถานที่ดูแล/คนดูแล(หลังจำหน่ายออกโรงพยาบาลแล้ว)", "323 การจัดสิ่งแวดล้อมเพื่อการบำบัด รายบุคคล", "324 ประสาน/ส่งต่อศูนย์สุขภาพชุมชนและอาสาสมัครดูแล กันเองในชุมชน", "325 การส่งต่อหน่วยงานอื่น/ประสานงานเครือข่ายด้าน สวัสดิการสังคม"] },
+        "4": { name: "4. จัดบริการทางสังคม", sub: ["411 การประเมินครอบครัว", "412 เตรียมครอบครัวเพื่อฟื้นฟูสมรรถภาพในครอบครัว/ชุมชน", "413 ประเมินความเสี่ยง/เฝ้าระวังปัญหาทางสังคม (Social Surveillance)", "414 การพิทักษ์สิทธิในการรักษาพยาบาล", "415 การเยี่ยมบ้านร่วมกับทีมสหวิชาชีพ", 
+"416 การเยี่ยมบ้าน", "417 การคุ้มครองและพิทักษ์สิทธิ์ตามกฎหมาย (Rights Protection and Advocacy)", "418 การจัดการรายกรณี (case management)", "419 การประเมินทางสังคม/จดทะเบียนผู้พิการ", "420 การติดต่อ /ติดตามญาติ", "421 การประเมินทางสังคมอื่น ๆ"] }
+    };
+
+    function generateAccordion(dict, containerId, inputName, themeClass, bgClass) {
+      var container = document.getElementById(containerId);
+      if(!container) return;
+      container.innerHTML = "";
+      
+      var keys = Object.keys(dict);
+      keys.sort(function(a, b) { return a.localeCompare(b); });
+      
+      for(var i=0; i<keys.length; i++) {
+        var key = keys[i];
+        var val = dict[key];
+        var html = '<div class="bg-white border-2 border-gray-100 rounded-lg overflow-hidden transition hover:border-blue-200 mb-2">' +
+            '<div class="px-3 py-2 bg-white cursor-pointer flex items-center justify-between hover:bg-gray-50 transition border-b" onclick="this.nextElementSibling.classList.toggle(\'hidden\'); this.querySelector(\'svg\').classList.toggle(\'rotate-180\');">' +
+               '<div class="flex items-center font-bold text-gray-700 text-sm"><span class="mr-2 text-xs ' + bgClass + ' text-white px-2 py-1 rounded-md shadow-sm">' + key + '</span> ' + val.name + '</div>' +
+               '<svg class="w-4 h-4 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>' +
+            '</div><div class="hidden bg-gray-50"><div class="p-2">';
+        
+        if (val.sub.length === 0) {
+             var finalKey = key === '00' ? "'00" : key;
+             html += '<label class="flex items-center p-2 rounded-lg border border-gray-200 bg-white hover:bg-blue-50 cursor-pointer transition">' +
+                        '<input type="checkbox" name="' + inputName + '" value="' + finalKey + '" class="form-checkbox h-4 w-4 ' + themeClass + ' rounded">' +
+                        '<span class="ml-2 text-sm text-gray-700 font-bold">เลือกหัวข้อนี้ (ไม่มีปัญหา)</span></label>';
+        } else {
+            html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-2">';
+            for(var j=0; j<val.sub.length; j++) {
+                var subItem = val.sub[j];
+                var code = subItem.split(' ')[0]; 
+                var finalCode = "'" + code; 
+                html += '<label class="flex items-start p-2 rounded-lg border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm cursor-pointer transition">' +
+                            '<input type="checkbox" name="' + inputName + '" value="' + finalCode + '" class="mt-0.5 form-checkbox h-4 w-4 ' + themeClass + ' rounded">' +
+                            '<span class="ml-2 text-xs text-gray-700 leading-snug">' + subItem + '</span></label>';
+            }
+            html += '</div>';
+        }
+        html += '</div></div></div>'; 
+        container.innerHTML += html;
+      }
+    }
+
+    function generateFiscalYearOptions() {
+        var currentYear = new Date().getFullYear();
+        var currentMonth = new Date().getMonth() + 1;
+        var currentFY = currentYear > 2500 ? currentYear : currentYear + 543;
+        if (currentMonth >= 10) currentFY += 1;
+        
+        var fySelects = ['fuSearchFY', 'globalSearchFY', 'val-fiscal', 'dashSearchFY'];
+        for(var i=0; i<fySelects.length; i++) {
+            var el = document.getElementById(fySelects[i]);
+            if(el) {
+                el.innerHTML = '<option value="">-- ทุกปีงบประมาณ --</option>';
+                for (var y = currentFY; y >= 2565; y--) {
+                    var opt = document.createElement('option');
+                    opt.value = y; opt.innerHTML = 'ปีงบฯ ' + y; el.appendChild(opt);
+                }
+            }
+        }
+    }
+
+    // ==========================================
+    // API Address
+    // ==========================================
+    var provincesData = [], districtsData = [], subDistrictsData = [];
+    
+    function loadAddressData() {
+        return Promise.all([
+            fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api/latest/province.json').then(function(res){return res.json();}),
+            fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api/latest/district.json').then(function(res){return res.json();}),
+            fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api/latest/sub_district.json').then(function(res){return res.json();})
+        ]).then(function(data) {
+            provincesData = data[0]; districtsData = data[1]; subDistrictsData = data[2];
+            
+            var provinceSelect = document.getElementById('province');
+            if(provinceSelect) {
+                provinceSelect.innerHTML = '<option value="">-- จังหวัด --</option>';
+                for(var i=0; i<provincesData.length; i++) {
+                    var p = provincesData[i];
+                    var opt = document.createElement('option');
+                    opt.value = p.name_th; opt.innerHTML = p.name_th; opt.setAttribute('data-id', p.id);
+                    provinceSelect.appendChild(opt);
+                }
+                provinceSelect.value = "ราชบุรี"; 
+                populateDistrict();
+                var districtSelect = document.getElementById('district');
+                if(districtSelect) { districtSelect.value = "ดำเนินสะดวก"; populateSubDistrict(); }
+            }
+        });
+    }
+
+    var provEl = document.getElementById('province');
+    if(provEl) provEl.addEventListener('change', populateDistrict);
+    
+    var distEl = document.getElementById('district');
+    if(distEl) distEl.addEventListener('change', populateSubDistrict);
+
+    function populateDistrict() {
+        var districtSelect = document.getElementById('district'); var subDistrictSelect = document.getElementById('subDistrict'); var provinceSelect = document.getElementById('province');
+        if(!districtSelect || !subDistrictSelect || !provinceSelect) return;
+        districtSelect.innerHTML = '<option value="">-- อำเภอ --</option>'; subDistrictSelect.innerHTML = '<option value="">-- ตำบล --</option>';
+        
+        var selectedProv = provinceSelect.value; var provObj = null;
+        for(var i=0; i<provincesData.length; i++) { if(provincesData[i].name_th === selectedProv) { provObj = provincesData[i]; break; } }
+        if (!provObj) return;
+        
+        for(var j=0; j<districtsData.length; j++) {
+            var d = districtsData[j];
+            if(d.province_id === provObj.id) {
+                var opt = document.createElement('option'); opt.value = d.name_th; opt.innerHTML = d.name_th; opt.setAttribute('data-id', d.id); districtSelect.appendChild(opt);
+            }
+        }
+        populateSubDistrict();
+    }
+
+    function populateSubDistrict() {
+        var subDistrictSelect = document.getElementById('subDistrict'); var districtSelect = document.getElementById('district');
+        if(!subDistrictSelect || !districtSelect) return;
+        subDistrictSelect.innerHTML = '<option value="">-- ตำบล --</option>';
+        var selectedDist = districtSelect.value; var distObj = null;
+        for(var i=0; i<districtsData.length; i++) { if(districtsData[i].name_th === selectedDist) { distObj = districtsData[i]; break; } }
+        if (!distObj) return;
+        for(var j=0; j<subDistrictsData.length; j++) {
+            var s = subDistrictsData[j];
+            if(s.district_id === distObj.id) {
+                var opt = document.createElement('option'); opt.value = s.name_th; opt.innerHTML = s.name_th; subDistrictSelect.appendChild(opt);
+            }
+        }
+    }
+
+    // ==========================================
+    // ส่งข้อมูลบันทึก GAS
+    // ==========================================
+    function handleFormSubmit(e, actionName) {
+      e.preventDefault();
+      var form = e.target; 
+      var btn = form.querySelector('button[type="submit"]'); 
+      var txt = btn.innerHTML;
+      
+      btn.disabled = true; btn.innerHTML = '⏳ กำลังบันทึก...';
+      Swal.fire({ title: 'กำลังประมวลผล...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+
+      var fd = new FormData(form); 
+      var data = {};
+      fd.forEach(function(value, key){ data[key] = value; });
+      
+      var socialObj = {};
+      var allSocial = fd.getAll('socialProb');
+      for(var i=0; i<allSocial.length; i++) {
+          var item = allSocial[i];
+          var code = item.replace(/'/g, '').split(' ')[0];
+          var cat = code.substring(0, 2); 
+          if(code === "00") cat = "00";
+          if(!socialObj[cat]) socialObj[cat] = []; 
+          socialObj[cat].push(item);
+      }
+      data.socialProblemsObj = JSON.stringify(socialObj);
+      if(actionName === 'saveFollowUpRecord') data.socialProblemsObjUpdate = JSON.stringify(socialObj);
+      
+      data.serviceProvided = fd.getAll('serviceProvided'); 
+      data.serviceProvidedUpdate = fd.getAll('serviceProvidedUpdate');
+      data.finType = fd.getAll('finType'); 
+
+      gasApiPost(actionName, data).then(function(res) {
+          btn.disabled = false; btn.innerHTML = txt;
+          if(res.success) {
+            Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: res.message, timer: 1500, showConfirmButton: false });
+            form.reset();
+            if(actionName === 'saveRecord') {
+                document.getElementById('serviceDate').valueAsDate = new Date();
+                document.getElementById('province').value = "ราชบุรี"; populateDistrict(); 
+                document.getElementById('district').value = "ดำเนินสะดวก"; populateSubDistrict();
+                document.getElementById('financeFieldsContainer').classList.add('hidden');
+                document.getElementById('an-container').classList.add('hidden');
+            }
+            if(actionName === 'saveFollowUpRecord') { 
+                document.getElementById('followUpModal').classList.add('hidden'); 
+                searchForFollowUp(); 
+            }
+            window.scrollTo(0,0);
+          } else { Swal.fire('Error', res.error, 'error'); }
+      }).catch(function(err) { btn.disabled = false; btn.innerHTML = txt; Swal.fire('Error', err.toString(), 'error'); });
+    }
+
+    // ==========================================
+    // ค้นหาและตาราง (อัปเดตระบบซ่อน ยุติบริการ)
+    // ==========================================
+    var allPatientData = [];
+
+    function parseThaiDate(dateStr) {
+        if(!dateStr) return null;
+        if(dateStr.indexOf('T') !== -1) return new Date(dateStr);
+        var parts = dateStr.split('/');
+        if(parts.length === 3) {
+           var y = parseInt(parts[2]); if(y > 2500) y -= 543;
+           return new Date(y, parseInt(parts[1])-1, parseInt(parts[0]));
+        }
+        return new Date(dateStr);
+    }
+
+    function searchForFollowUp() {
+      var keyword = document.getElementById('fuSearchKeyword').value.toLowerCase().trim();
+      var fyFilter = document.getElementById('fuSearchFY').value;
+      var moFilter = document.getElementById('fuSearchMonth').value;
+      var wkFilter = document.getElementById('fuSearchWorker').value.toLowerCase().trim();
+
+      var tbody = document.getElementById('fuTableBody');
+      tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-gray-500"><span class="animate-pulse">กำลังโหลดข้อมูล...</span></td></tr>';
+      
+      gasApiGet('searchPatientHistory').then(function(data) { 
+        allPatientData = data.reverse(); 
+        var tbody = document.getElementById('fuTableBody'); 
+        tbody.innerHTML = '';
+        
+        // หากลุ่ม Record_ID เพื่อหาค่าล่าสุด
+        var latestObj = {};
+        var uniqueData = [];
+        for(var i=0; i<allPatientData.length; i++) {
+            var item = allPatientData[i];
+            if(!latestObj[item.recordId]) {
+                latestObj[item.recordId] = item;
+                uniqueData.push(item);
+            }
+        }
+
+        var filtered = [];
+        for(var j=0; j<uniqueData.length; j++) {
+            var item = uniqueData[j];
+            
+            // กฎเหล็ก: ยุติบริการ ห้ามแสดงใน Follow-up เด็ดขาด!
+            if (item.status === 'ยุติบริการ') continue;
+
+            var mKw = !keyword || (item.hn.toLowerCase().trim() === keyword || item.name.toLowerCase().indexOf(keyword) !== -1);
+            var mWk = !wkFilter || (item.worker && item.worker.toLowerCase().indexOf(wkFilter) !== -1);
+            var mDate = true;
+            if (fyFilter || moFilter) {
+                var rDate = parseThaiDate(item.date);
+                if (!rDate) mDate = false;
+                else {
+                    var m = rDate.getMonth() + 1; var yBE = rDate.getFullYear() + 543; var rFy = m >= 10 ? yBE + 1 : yBE;
+                    if (fyFilter && rFy != fyFilter) mDate = false;
+                    if (moFilter && m != moFilter) mDate = false;
+                }
+            }
+            if(mKw && mWk && mDate) filtered.push(item);
+        }
+
+        if(filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-gray-500">ไม่พบประวัติที่ตรงกับเงื่อนไข หรือเคสถูกยุติบริการไปแล้ว</td></tr>';
+            return;
+        }
+
+        for(var k=0; k<filtered.length; k++) {
+          var item = filtered[k];
+          var stColor = 'text-yellow-600 bg-yellow-50';
+          if(item.status === 'กำลังให้บริการ') stColor = 'text-blue-600 bg-blue-50';
+          
+          var btn = '<button type="button" onclick="openFollowUpModal(\'' + item.recordId + '\')" class="bg-[#3d82af] text-white px-4 py-1.5 rounded-lg shadow-sm text-xs font-bold hover:bg-[#2c6385]">อัปเดต</button>';
+          
+          tbody.innerHTML += '<tr class="border-b border-gray-100 hover:bg-gray-50">' +
+            '<td class="p-3 font-bold text-gray-600">' + item.recordId + '</td>' +
+            '<td class="p-3">' + item.date + '</td>' +
+            '<td class="p-3 font-bold">' + item.hn + '</td>' +
+            '<td class="p-3 text-[#3d82af] font-bold">' + item.name + '</td>' +
+            '<td class="p-3">' + item.ward + '</td>' +
+            '<td class="p-3"><span class="px-3 py-1 rounded-full text-[11px] font-bold ' + stColor + '">' + item.status + '</span></td>' +
+            '<td class="p-3 text-center">' + btn + '</td></tr>';
+        }
+      }).catch(function(err) { 
+        document.getElementById('fuTableBody').innerHTML = '<tr><td colspan="7" class="p-8 text-center text-red-500">เกิดข้อผิดพลาด: ' + err.toString() + '</td></tr>';
+      });
+    }
+
+    function toggleFuEditGeneral() {
+        var isEdit = document.getElementById('fu_edit_toggle').checked;
+        document.getElementById('fu_view_mode').style.display = isEdit ? 'none' : 'block';
+        document.getElementById('fu_edit_mode').style.display = isEdit ? 'block' : 'none';
+    }
+
+    function openFollowUpModal(recordId) {
+      var item = null;
+      for(var i=0; i<allPatientData.length; i++) {
+          if(allPatientData[i].recordId === recordId) { item = allPatientData[i]; break; }
+      }
+      if(!item) return;
+      
+      document.getElementById('fu_recordId').value = item.recordId; 
+      document.getElementById('fu_hn').value = item.hn; 
+      document.getElementById('fu_name').value = item.name;
+      document.getElementById('fu_ward').value = item.ward;
+      
+      document.getElementById('fu_disp_name').innerText = item.name; 
+      document.getElementById('fu_disp_hn').innerText = 'HN: ' + item.hn;
+      
+      var formattedDob = "";
+      if(item.dob) { 
+          var dp = item.dob.split('-'); 
+          if(dp.length===3) formattedDob = dp[2] + "/" + dp[1] + "/" + dp[0]; 
+          else formattedDob = item.dob; 
+      }
+
+      document.getElementById('fu_disp_dob').innerText = formattedDob || '-';
+      document.getElementById('fu_disp_med').innerText = item.insurance || '-';
+      document.getElementById('fu_disp_addr').innerText = item.addressStr || '-';
+      document.getElementById('fu_disp_icd10').innerText = item.icd10 || '-';
+      document.getElementById('fu_disp_z').innerText = item.zCat || '-';
+
+      document.getElementById('fu_old_dob').value = item.dob || '';
+      document.getElementById('fu_old_med').value = item.insurance || '';
+      document.getElementById('fu_old_icd10').value = item.icd10 || '';
+      document.getElementById('fu_old_z').value = item.zCat || '';
+      document.getElementById('fu_old_prov').value = item.prov || '';
+      document.getElementById('fu_old_dist').value = item.dist || '';
+      document.getElementById('fu_old_subdist').value = item.subDist || '';
+
+      document.getElementById('fu_dob').value = item.dob || '';
+      document.getElementById('fu_edit_med').value = item.insurance || 'ประกันสุขภาพแห่งชาติ';
+      document.getElementById('fu_edit_icd10').value = item.icd10 || '';
+      document.getElementById('fu_edit_z').value = item.zCat || '';
+      
+      var ageStr = item.dob ? getAgeText(item.dob) : (item.age ? item.age + " ปี" : "");
+      document.getElementById('fu_disp_age').innerText = ageStr ? "(อายุ: " + ageStr + ")" : "";
+
+      var pSel = document.getElementById('fu_province');
+      pSel.innerHTML = '<option value="">-- จังหวัด --</option>';
+      for(var j=0; j<provincesData.length; j++) {
+          var p = provincesData[j];
+          var opt = document.createElement('option');
+          opt.value = p.name_th; opt.innerHTML = p.name_th; opt.setAttribute('data-id', p.id);
+          pSel.appendChild(opt);
+      }
+      pSel.value = item.prov || '';
+      
+      var dSel = document.getElementById('fu_district'); dSel.innerHTML = '<option value="">-- อำเภอ --</option>';
+      var sSel = document.getElementById('fu_subDistrict'); sSel.innerHTML = '<option value="">-- ตำบล --</option>';
+      
+      var provObj = null;
+      for(var k=0; k<provincesData.length; k++) { if(provincesData[k].name_th === pSel.value) { provObj = provincesData[k]; break; } }
+      if(provObj) {
+          for(var l=0; l<districtsData.length; l++) {
+              if(districtsData[l].province_id === provObj.id) {
+                  var opt2 = document.createElement('option'); opt2.value = districtsData[l].name_th; opt2.innerHTML = districtsData[l].name_th; opt2.setAttribute('data-id', districtsData[l].id); dSel.appendChild(opt2);
+              }
+          }
+          dSel.value = item.dist || '';
+          
+          var distObj = null;
+          for(var m=0; m<districtsData.length; m++) { if(districtsData[m].name_th === dSel.value) { distObj = districtsData[m]; break; } }
+          if(distObj) {
+              for(var n=0; n<subDistrictsData.length; n++) {
+                  if(subDistrictsData[n].district_id === distObj.id) {
+                      var opt3 = document.createElement('option'); opt3.value = subDistrictsData[n].name_th; opt3.innerHTML = subDistrictsData[n].name_th; sSel.appendChild(opt3);
+                  }
+              }
+              sSel.value = item.subDist || '';
+          }
+      }
+      
+      pSel.onchange = function() {
+         dSel.innerHTML = '<option value="">-- อำเภอ --</option>'; sSel.innerHTML = '<option value="">-- ตำบล --</option>';
+         var pr = null;
+         for(var x=0; x<provincesData.length; x++) { if(provincesData[x].name_th === this.value) { pr = provincesData[x]; break; } }
+         if(!pr) return;
+         for(var y=0; y<districtsData.length; y++) {
+             if(districtsData[y].province_id === pr.id) {
+                 var o = document.createElement('option'); o.value = districtsData[y].name_th; o.innerHTML = districtsData[y].name_th; o.setAttribute('data-id', districtsData[y].id); dSel.appendChild(o);
+             }
+         }
+      };
+      dSel.onchange = function() {
+         sSel.innerHTML = '<option value="">-- ตำบล --</option>';
+         var di = null;
+         for(var x=0; x<districtsData.length; x++) { if(districtsData[x].name_th === this.value) { di = districtsData[x]; break; } }
+         if(!di) return;
+         for(var y=0; y<subDistrictsData.length; y++) {
+             if(subDistrictsData[y].district_id === di.id) {
+                 var o = document.createElement('option'); o.value = subDistrictsData[y].name_th; o.innerHTML = subDistrictsData[y].name_th; sSel.appendChild(o);
+             }
+         }
+      };
+
+      document.getElementById('fu_edit_toggle').checked = false;
+      toggleFuEditGeneral();
+      document.getElementById('fuFinanceTypeSelect').value = '';
+      toggleFuFinanceDetails();
+
+      document.querySelector('input[name="serviceDateUpdate"]').valueAsDate = new Date();
+      document.getElementById('followUpModal').classList.remove('hidden');
+    }
+
+    function performSearch() {
+      var keyword = document.getElementById('globalSearchInput').value.toLowerCase().trim();
+      var stFilter = document.getElementById('globalSearchStatus').value;
+      var fyFilter = document.getElementById('globalSearchFY').value;
+      var moFilter = document.getElementById('globalSearchMonth').value;
+      var wkFilter = document.getElementById('globalSearchWorker').value.toLowerCase().trim();
+
+      var area = document.getElementById('searchResultArea');
+      area.innerHTML = '<div class="text-center py-10"><span class="animate-pulse text-gray-500">กำลังค้นหาข้อมูล...</span></div>';
+      
+      gasApiGet('searchPatientHistory').then(function(data) { 
+        allPatientData = data.reverse(); 
+        var area = document.getElementById('searchResultArea'); area.innerHTML = '';
+        
+        var filtered = [];
+        for(var i=0; i<allPatientData.length; i++) {
+            var item = allPatientData[i];
+            var mKw = !keyword || (item.hn.toLowerCase().trim() === keyword || item.name.toLowerCase().indexOf(keyword) !== -1 || item.recordId.toLowerCase().trim() === keyword || (item.idcard && item.idcard.trim() === keyword));
+            var mSt = true; 
+            if(stFilter === 'กำลังให้บริการ') mSt = (item.status !== 'ยุติบริการ'); 
+            if(stFilter === 'ยุติบริการ') mSt = (item.status === 'ยุติบริการ');
+            var mWk = !wkFilter || (item.worker && item.worker.toLowerCase().indexOf(wkFilter) !== -1);
+            var mDate = true;
+            if (fyFilter || moFilter) {
+                var rDate = parseThaiDate(item.date);
+                if (!rDate) mDate = false;
+                else {
+                    var m = rDate.getMonth() + 1; var yBE = rDate.getFullYear() + 543; var rFy = m >= 10 ? yBE + 1 : yBE;
+                    if (fyFilter && rFy != fyFilter) mDate = false;
+                    if (moFilter && m != moFilter) mDate = false;
+                }
+            }
+            if(mKw && mSt && mWk && mDate) filtered.push(item);
+        }
+
+        if(filtered.length === 0) {
+            area.innerHTML = '<div class="text-center py-10 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">ไม่พบประวัติที่ตรงกับเงื่อนไข</div>';
+            return;
+        }
+
+        for(var j=0; j<filtered.length; j++) {
+          var item = filtered[j];
+          var probHtml = "";
+          if(item.socialProblem.length > 0) {
+              for(var k=0; k<item.socialProblem.length; k++) {
+                  probHtml += '<span class="inline-block bg-red-50 text-red-700 px-2 py-1 rounded text-[11px] font-bold mr-1 mb-1 border border-red-100">' + item.socialProblem[k] + '</span>';
+              }
+          } else { probHtml = '<span class="text-gray-400 text-xs">-</span>'; }
+          
+          var intvHtml = "";
+          var intvList = item.intervention ? item.intervention.split(',') : [];
+          if(intvList.length > 0) {
+              for(var l=0; l<intvList.length; l++) {
+                  if(intvList[l].trim()) intvHtml += '<span class="inline-block bg-green-50 text-green-700 px-2 py-1 rounded text-[11px] font-bold mr-1 mb-1 border border-green-100">' + intvList[l].trim() + '</span>';
+              }
+          } else { intvHtml = '<span class="text-gray-400 text-xs">-</span>'; }
+
+          var ageDisplay = item.dob ? getAgeText(item.dob) : (item.age ? item.age + " ปี" : "-");
+
+          var statusBadge = item.status === 'ยุติบริการ' ? '<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-[11px] font-bold">✅ ' + item.status + '</span>' : '<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-[11px] font-bold">⏳ ' + item.status + '</span>';
+          var btnUpdate = item.status !== 'ยุติบริการ' ? '<button type="button" onclick="openFollowUpModal(\'' + item.recordId + '\')" class="bg-[#3d82af] text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-[#2c6385] shadow-sm ml-2">อัปเดต</button>' : '';
+
+          var noteVal = item.detail || '-';
+          var planVal = item.plan || '-';
+
+          area.innerHTML += '<div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4 hover:shadow-md transition">' +
+                '<div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">' +
+                    '<div><h3 class="font-bold text-lg text-[#3d82af]">' + item.name + ' <span class="text-sm font-normal text-gray-500 ml-2">(' + item.recordId + ')</span></h3>' +
+                    '<div class="text-xs text-gray-500 mt-0.5"><span class="font-bold text-gray-700 mr-2">HN: ' + item.hn + '</span> | <span class="ml-2">วันที่รับบริการ: ' + item.date + '</span></div></div>' +
+                    '<div class="flex items-center">' + statusBadge + ' ' + btnUpdate + '</div>' +
+                '</div>' +
+                '<div class="p-4">' +
+                    // เพิ่มช่องแสดงอายุตรงนี้
+                    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-3">' +
+                        '<div><span class="text-gray-500">อายุ:</span> <span class="font-bold">' + ageDisplay + '</span></div>' +
+                        '<div><span class="text-gray-500">กลุ่มเป้าหมาย:</span> <span class="font-bold">' + item.target + '</span></div>' +
+                        '<div class="md:col-span-2"><span class="text-gray-500">หอผู้ป่วย/แผนก:</span> <span class="font-bold">' + item.ward + '</span></div>' +
+                    '</div>' +
+                    '<div class="mb-3"><p class="text-xs font-bold text-gray-500 mb-1">📌 ปัญหาทางสังคม</p><div>' + probHtml + '</div></div>' +
+                    '<div class="mb-3"><p class="text-xs font-bold text-gray-500 mb-1">🛠️ บริการทางสังคม</p><div>' + intvHtml + '</div></div>' +
+                    '<div class="mb-3"><p class="text-xs font-bold text-gray-500 mb-1">📝 รายละเอียดปัญหาเพิ่มเติม (Note)</p><div class="text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-100">' + noteVal + '</div></div>' +
+                    '<div class="mb-3"><p class="text-xs font-bold text-gray-500 mb-1">🎯 แผนการทำงานต่อ (Plan)</p><div class="text-sm text-gray-700 bg-gray-50 p-2 rounded border border-gray-100">' + planVal + '</div></div>' +
+                    '<div class="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-400"><span>ผู้บันทึก: ' + item.worker + '</span></div>' +
+                '</div></div>';
+        }
+      }).catch(function(err) { 
+        document.getElementById('searchResultArea').innerHTML = '<div class="text-center py-10 text-red-500">เกิดข้อผิดพลาด: ' + err.toString() + '</div>';
+      });
+    }
+
+    // ==========================================
+    // Report & Dashboard
+    // ==========================================
+    var currentReportData = [];
+    var currentReportType = 'service';
+
+    function loadReportData() {
+        var rType = document.getElementById('reportType').value;
+        var yFilter = document.getElementById('val-fiscal').value;
+        var mFilter = document.getElementById('val-month').value;
+        var wFilter = document.getElementById('val-worker').value.toLowerCase().trim();
+        var tbody = document.getElementById('reportTableBody'); 
+        var thead = document.getElementById('reportTableHead');
+        
+        tbody.innerHTML = '<tr><td colspan="15" class="p-8 text-center text-gray-500">กำลังดึงข้อมูลจากระบบ...</td></tr>';
+        
+        var fnName = rType === 'service' ? 'getDashboardData' : 'getFinancialData';
+        gasApiGet(fnName).then(function(data) {
+            var filtered = [];
+            for(var i=0; i<data.length; i++) {
+               var row = data[i];
+               var rDate = parseThaiDate(row[3]); 
+               if(!rDate) continue;
+               var m = rDate.getMonth() + 1; var yBE = rDate.getFullYear() + 543; var rFy = m >= 10 ? yBE + 1 : yBE;
+               var mWk = true; if(wFilter) { mWk = rType === 'service' ? (row[1]||'').toLowerCase().indexOf(wFilter) !== -1 : true; }
+               
+               var pass = true;
+               if(yFilter && rFy != yFilter) pass = false;
+               if(mFilter && m != mFilter) pass = false;
+               if(!mWk) pass = false;
+               
+               if(pass) filtered.push(row);
+            }
+
+            document.getElementById('reportCount').innerText = 'พบ ' + filtered.length + ' รายการ'; 
+            tbody.innerHTML = '';
+            
+            if(filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="15" class="p-8 text-center text-gray-500">ไม่พบข้อมูลตามเงื่อนไขที่ระบุ</td></tr>';
+                return;
+            }
+
+            if(rType === 'service') {
+                // Table Preview Header: วันที่ให้บริการ, ประเภทผู้ป่วย, กลุ่มเป้าหมาย, HN, AN, ห้องตรวจ / หอผู้ป่วย, ชื่อ-สกุลผู้ป่วย
+                thead.innerHTML = '<tr class="bg-[#3d82af] text-white">' +
+                  '<th class="p-2 border">วันที่ให้บริการ</th><th class="p-2 border">ประเภทผู้ป่วย</th><th class="p-2 border">กลุ่มเป้าหมาย</th>' +
+                  '<th class="p-2 border">HN</th><th class="p-2 border">AN</th><th class="p-2 border">ห้องตรวจ / หอผู้ป่วย</th>' +
+                  '<th class="p-2 border">ชื่อ-สกุลผู้ป่วย</th><th class="p-2 border">สิทธิการรักษา</th></tr>';
+                for(var j=0; j<filtered.length; j++) {
+                    var r = filtered[j];
+                    tbody.innerHTML += '<tr>' +
+                      '<td class="p-2 border">' + r[3] + '</td><td class="p-2 border">' + r[6] + '</td><td class="p-2 border">' + r[17] + '</td>' +
+                      '<td class="p-2 border font-bold">' + r[4] + '</td><td class="p-2 border">' + r[5] + '</td><td class="p-2 border">' + r[19] + '</td>' +
+                      '<td class="p-2 border text-[#3d82af]">' + r[8] + '</td><td class="p-2 border">' + r[12] + '</td></tr>';
+                }
+            } else {
+                // Table Preview Header: วันที่, HN/AN, ห้องตรวจ / หอผู้ป่วย, ชื่อ-สกุลผู้ป่วย, ค่ารักษาทั้งหมด, ใช้สิทธิได้/ร่วมจ่าย, อนุเคราะห์, ค้างชำระ
+                thead.innerHTML = '<tr class="bg-red-600 text-white">' +
+                  '<th class="p-2 border">วันที่</th><th class="p-2 border">HN / AN</th><th class="p-2 border">ห้องตรวจ / หอผู้ป่วย</th>' +
+                  '<th class="p-2 border">ชื่อ-สกุลผู้ป่วย</th><th class="p-2 border">สิทธิการรักษา</th><th class="p-2 border">ค่ารักษาทั้งหมด</th>' +
+                  '<th class="p-2 border">อนุเคราะห์</th><th class="p-2 border">ค้างชำระ</th></tr>';
+                for(var k=0; k<filtered.length; k++) {
+                    var r = filtered[k];
+                    var hnan = r[5] + (r[6] ? ' / ' + r[6] : '');
+                    tbody.innerHTML += '<tr>' +
+                      '<td class="p-2 border">' + r[3] + '</td><td class="p-2 border font-bold">' + hnan + '</td><td class="p-2 border">' + r[18] + '</td>' +
+                      '<td class="p-2 border">' + r[7] + '</td><td class="p-2 border">' + r[21] + '</td><td class="p-2 border text-right">' + r[11] + '</td>' +
+                      '<td class="p-2 border text-right text-green-600 font-bold">' + r[13] + '</td><td class="p-2 border text-right text-red-600 font-bold">' + r[14] + '</td></tr>';
+                }
+            }
+            currentReportData = filtered; 
+            currentReportType = rType;
+        }).catch(function(err) {
+            tbody.innerHTML = '<tr><td colspan="15" class="p-8 text-center text-red-500">เกิดข้อผิดพลาด: ' + err.toString() + '</td></tr>';
+        }); 
+    }
+
+    function exportToExcel() {
+        if(!currentReportData || currentReportData.length === 0) return Swal.fire('แจ้งเตือน', 'กรุณาดึงข้อมูลก่อนทำการดาวน์โหลด', 'warning');
+        
+        var wsData = [];
+        if (currentReportType === 'service') {
+            var hS = ["วันที่ให้บริการ", "ประเภทผู้ป่วย", "กลุ่มเป้าหมาย", "HN", "AN", "ห้องตรวจ / หอผู้ป่วย", "ชื่อ-สกุลผู้ป่วย", "ที่อยู่", "วันเดือนปีเกิด", "สิทธิการรักษา", "ICD10", "หมวด Z", "บริการทางสังคม (Intervention)", "การวินิจฉัยปัญหาทางสังคม"];
+            wsData.push(hS);
+            for(var i=0; i<currentReportData.length; i++) {
+                var r = currentReportData[i];
+                var addr = "";
+                if(r[13] || r[14] || r[15] || r[16]) {
+                   addr = (r[13] ? "หมู่ " + r[13] + " " : "") + (r[14] ? "ต." + r[14] + " " : "") + (r[15] ? "อ." + r[15] + " " : "") + (r[16] ? "จ." + r[16] : "");
+                } else { addr = "-"; }
+                
+                var probs = []; 
+                for(var j=30; j<=46; j++) { if(r[j]) probs.push(r[j]); }
+                wsData.push([ r[3], r[6], r[17], r[4], r[5], r[19], r[8], addr, (r[51]||r[10]), r[12], r[18], r[48], r[20], probs.join(', ') ]);
+            }
+        } else {
+            var hF = ['วันที่', 'HN/AN', 'ห้องตรวจ / หอผู้ป่วย', 'ชื่อ-สกุลผู้ป่วย', 'ที่อยู่', 'สิทธิการรักษา', 'ICD10', 'ค่ารักษาทั้งหมด', 'ใช้สิทธิได้/ร่วมจ่าย', 'อนุเคราะห์', 'ค้างชำระ', 'หน่วยงาน', 'หมายเหตุ'];
+            wsData.push(hF);
+            for(var k=0; k<currentReportData.length; k++) {
+                var r = currentReportData[k];
+                var hnan = r[5] + (r[6] ? '/' + r[6] : '');
+                wsData.push([ r[3], hnan, r[18], r[7], r[10], r[21], r[17], r[11], r[12], r[13], r[14], r[19], r[20] ]);
+            }
+        }
+        
+        var wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, "Report");
+        var prefix = currentReportType === 'service' ? "ServiceReport" : "FinancialReport";
+        var dateStr = new Date().getFullYear() + "-" + (new Date().getMonth()+1) + "-" + new Date().getDate();
+        XLSX.writeFile(wb, prefix + "_" + dateStr + ".xlsx");
+    }
+
+    function switchDashTab(tabId) {
+      document.getElementById('dash-tab-overview').classList.add('hidden'); document.getElementById('dash-tab-finance').classList.add('hidden');
+      document.getElementById('tab-btn-dash-overview').className = "py-3 px-5 border-b-4 font-medium text-gray-500 border-transparent hover:text-[#3d82af] hover:bg-gray-50 transition";
+      document.getElementById('tab-btn-dash-finance').className = "py-3 px-5 border-b-4 font-medium text-gray-500 border-transparent hover:text-[#3d82af] hover:bg-gray-50 transition";
+      document.getElementById('dash-tab-' + tabId).classList.remove('hidden'); document.getElementById('tab-btn-dash-' + tabId).className = "py-3 px-5 border-b-4 font-bold text-[#3d82af] border-[#3d82af] transition hover:bg-gray-50";
+    }
+
+    var chartsObj = {};
+    function drawChart(id, type, labels, data, colors, options) {
+        var ctx = document.getElementById(id).getContext('2d');
+        if(chartsObj[id]) chartsObj[id].destroy();
+        
+        var config = { 
+            type: type, 
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderRadius: (type==='bar'?4:0) }] }, 
+            options: { responsive: true, maintainAspectRatio: false } 
+        };
+        if(options && options.plugins) config.options.plugins = options.plugins;
+        if(options && options.indexAxis) config.options.indexAxis = options.indexAxis;
+
+        chartsObj[id] = new Chart(ctx, config);
+    }
+
+    function loadDashboard() {
+      var fyFilter = document.getElementById('dashSearchFY').value;
+      var moFilter = document.getElementById('dashSearchMonth').value;
+      var wkFilter = document.getElementById('dashSearchWorker').value.trim();
+
+      gasApiGet('getDashboardData').then(function(rawData) {
+        var data = [];
+        for(var i=0; i<rawData.length; i++) {
+            var row = rawData[i];
+            var rDate = parseThaiDate(row[3]); 
+            if(!rDate) continue;
+            var m = rDate.getMonth() + 1; var yBE = rDate.getFullYear() + 543; var rFy = m >= 10 ? yBE + 1 : yBE;
+            var mWk = !wkFilter || row[1] === wkFilter;
+            var mDate = true;
+            if(fyFilter && rFy != fyFilter) mDate = false;
+            if(moFilter && m != moFilter) mDate = false;
+            if(mWk && mDate) data.push(row);
+        }
+
+        var total = data.length;
+        var closed = 0, tracking = 0, active = 0, locIn = 0;
+        var pTypes = {}, targets = {}, probs = {}, intvs = {}, nats = {}, areas = {"ในเขตฯ":0, "นอกเขต (ในจว.)":0, "นอก จว.":0};
+        var tc = 0, sp = 0, wf = 0, db = 0;
+        var finTypes = {}, finWards = {}, finAddr = {}, finTarget = {}, finNat = {}, finIcd = {}; 
+        var pendingCases = []; 
+        var globalLatestRowMap = {};
+        var getPercent = function(val, total) { return total > 0 ? ((val / total) * 100).toFixed(1) : 0; };
+        var chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: {
+                    color: '#444',
+                    formatter: function(value, context) {
+                        var sum = context.dataset.data.reduce((a, b) => a + b, 0);
+                        var percentage = ((value * 100) / sum).toFixed(1) + "%";
+                        return value > 0 ? percentage : "";
+                    }
+                }
+            }
+        };
+
+        for(var j=0; j<data.length; j++) {
+            var row = data[j];
+            globalLatestRowMap[row[0]] = row;
+
+            if(row[50] === 'ยุติบริการ') closed++; else if(row[50] === 'อยู่ระหว่างการติดตาม') tracking++; else active++;
+            if(row[16] === 'ราชบุรี' && row[15] === 'ดำเนินสะดวก') { locIn++; areas["ในเขตฯ"]++; }
+            else if(row[16] === 'ราชบุรี') areas["นอกเขต (ในจว.)"]++; else areas["นอก จว."]++;
+
+            var pt = row[6] || 'ไม่ระบุ'; pTypes[pt] = (pTypes[pt] || 0) + 1;
+            var tg = row[17] || 'ไม่ระบุ'; targets[tg] = (targets[tg] || 0) + 1;
+            var nt = row[11] || 'ไม่ระบุ'; nats[nt] = (nats[nt] || 0) + 1;
+
+            var fTypesArr = row[22] ? row[22].split(',') : [];
+            var hasFinance = fTypesArr.length > 0;
+            tc += parseFloat(row[23]) || 0; sp += parseFloat(row[24]) || 0;
+            if(row[22] && row[22].indexOf('อนุเคราะห์') !== -1) wf += parseFloat(row[25]) || 0;
+            if(row[22] && row[22].indexOf('ค้างชำระ') !== -1) db += parseFloat(row[25]) || 0;
+            
+            for(var k=0; k<fTypesArr.length; k++) {
+                var t = fTypesArr[k].trim(); if(t) finTypes[t] = (finTypes[t] || 0) + 1;
+            }
+            
+            if(hasFinance) {
+               var fw = row[19] || 'ไม่ระบุ'; finWards[fw] = (finWards[fw] || 0) + 1;
+               var addrStr = "ต." + row[14] + " อ." + row[15] + " จ." + row[16]; finAddr[addrStr] = (finAddr[addrStr] || 0) + 1;
+               finTarget[tg] = (finTarget[tg] || 0) + 1;
+               finNat[nt] = (finNat[nt] || 0) + 1;
+               var icd = row[18] || 'ไม่ระบุ'; finIcd[icd] = (finIcd[icd] || 0) + 1;
+            }
+
+            for (var i = 30; i <= 46; i++) { 
+                if (row[i] && String(row[i]).trim() !== "") { 
+                    var key = String(row[i]).split(' ')[0]; probs[key] = (probs[key] || 0) + 1; 
+                } 
+            }
+            if (row[20]) { 
+                var vArr = row[20].split(',');
+                for(var a=0; a<vArr.length; a++) {
+                    var txt = vArr[a].trim(); if(txt) intvs[txt] = (intvs[txt] || 0) + 1; 
+                }
+            }
+        }
+
+        if(wkFilter) { 
+            var keys = Object.keys(globalLatestRowMap);
+            for(var k=0; k<keys.length; k++) {
+                var r = globalLatestRowMap[keys[k]];
+                if(r[50] !== 'ยุติบริการ') pendingCases.push(r);
+            }
+        }
+
+        document.getElementById('kpiTotal').innerText = total; document.getElementById('kpiLocIn').innerText = locIn;
+        document.getElementById('kpiClosed').innerText = closed; document.getElementById('kpiTracking').innerText = tracking; document.getElementById('kpiActive').innerText = active;
+
+        function fmt(num) { return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        document.getElementById('dashTotalCost').innerText = fmt(tc) + ' ฿'; document.getElementById('dashSelfPay').innerText = fmt(sp) + ' ฿';
+        document.getElementById('dashWelfare').innerText = fmt(wf) + ' ฿'; document.getElementById('dashDebt').innerText = fmt(db) + ' ฿';
+
+        drawChart('chartNationality', 'pie', Object.keys(nats), Object.keys(nats).map(function(k){return nats[k];}), ['#ffa500', '#ff3f3e', '#3d82af', '#2c6385'], { plugins: { legend: { position: 'bottom' } } });
+        drawChart('chartArea', 'bar', Object.keys(areas), Object.keys(areas).map(function(k){return areas[k];}), ['#10b981', '#f59e0b', '#ef4444'], { plugins: { legend: { display: false } } });
+        drawChart('chartPatientType', 'pie', Object.keys(pTypes), Object.keys(pTypes).map(function(k){return pTypes[k];}), ['#3d82af', '#2c6385', '#ff3f3e', '#ffa500', '#94a3b8'], { plugins: { legend: { position: 'right' } } });
+        
+        var tgSorted = Object.keys(targets).map(function(k){return [k, targets[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0, 5);
+        drawChart('chartTargetGroup', 'bar', tgSorted.map(function(x){return x[0].substring(0,15)+'...';}), tgSorted.map(function(x){return x[1];}), '#3d82af', { indexAxis: 'y', plugins: { legend: { display: false } } });
+
+        var pSorted = Object.keys(probs).map(function(k){return [k, probs[k]];}).sort(function(a,b){return a[0].localeCompare(b[0]);});
+        drawChart('chartProblems', 'bar', pSorted.map(function(x){return x[0];}), pSorted.map(function(x){return x[1];}), '#2c6385', { plugins: { legend: { display: false } } });
+
+        var iSorted = Object.keys(intvs).map(function(k){return [k, intvs[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0, 8);
+        drawChart('chartInterventions', 'bar', iSorted.map(function(x){return x[0].substring(0,25)+'...';}), iSorted.map(function(x){return x[1];}), '#ff3f3e', { indexAxis: 'y', plugins: { legend: { display: false } } });
+
+        drawChart('chartFinanceType', 'pie', Object.keys(finTypes), Object.keys(finTypes).map(function(k){return finTypes[k];}), ['#10b981', '#ef4444', '#f59e0b'], { plugins: { legend: { position: 'bottom' } } });
+        var fwSorted = Object.keys(finWards).map(function(k){return [k, finWards[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0, 5);
+        drawChart('chartFinanceWard', 'bar', fwSorted.map(function(x){return x[0];}), fwSorted.map(function(x){return x[1];}), '#f59e0b', { plugins: { legend: { display: false } } });
+
+        function renderTbl(id, obj) {
+           var tbody = document.getElementById(id); tbody.innerHTML = '';
+           var sorted = Object.keys(obj).map(function(k){return [k, obj[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0, 10);
+           for(var i=0; i<sorted.length; i++) {
+               tbody.innerHTML += '<tr><td class="py-2 pr-2 border-b border-gray-100">' + sorted[i][0] + '</td><td class="py-2 pl-2 border-b border-gray-100 font-bold text-right w-1/4">' + sorted[i][1] + '</td></tr>';
+           }
+        }
+        renderTbl('finTableAddress', finAddr); renderTbl('finTableTarget', finTarget);
+        renderTbl('finTableNation', finNat); renderTbl('finTableICD', finIcd);
+
+        var pendingContainer = document.getElementById('pendingCasesContainer'); 
+        var pendingBody = document.getElementById('pendingCasesTableBody');
+        if(wkFilter) {
+            pendingContainer.classList.remove('hidden'); pendingBody.innerHTML = '';
+            if(pendingCases.length > 0) {
+                pendingCases.reverse();
+                for(var c=0; c<pendingCases.length; c++) {
+                    var r = pendingCases[c];
+                    var stColor = r[50] === 'กำลังให้บริการ' ? 'text-red-600 bg-red-50' : 'text-yellow-600 bg-yellow-50';
+                    pendingBody.innerHTML += '<tr class="border-b border-gray-100"><td class="py-2 px-3">' + r[3] + '</td><td class="py-2 px-3 font-bold">' + r[4] + '</td><td class="py-2 px-3 text-[#3d82af] font-bold">' + r[8] + '</td><td class="py-2 px-3">' + r[19] + '</td><td class="py-2 px-3 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-bold ' + stColor + '">' + (r[50] || 'กำลังให้บริการ') + '</span></td></tr>';
+                }
+            } else pendingBody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-gray-500">ไม่มีเคสค้าง/กำลังติดตาม</td></tr>';
+        } else pendingContainer.classList.add('hidden');
+
+      }).catch(function(err) {
+        Swal.fire('Error', err.toString(), 'error');
+      });
+    }
+
+    function copyPendingCases() {
+        var table = document.getElementById("pendingCasesTable"); var range = document.createRange(); range.selectNode(table);
+        var selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        try { document.execCommand('copy'); Swal.fire({ icon: 'success', title: 'คัดลอกสำเร็จ!', timer: 1500, showConfirmButton: false }); } catch (err) {}
+        selection.removeAllRanges();
+    }
+  </script>
+</body>
+</html>

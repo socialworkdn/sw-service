@@ -549,36 +549,68 @@
 
   <script>
     // ==========================================
-    // GAS JSON API CONFIG
+    // GAS JSON API CONFIG (เรียกผ่าน JSONP)
     // ==========================================
-    // นำ URL ของ Google Apps Script Web App (Deploy > New deployment > Web app)
+    // นำ URL ของ Google Apps Script Web App (Deploy > Manage deployments > แก้ไข > เวอร์ชันใหม่ > Deploy)
     // มาใส่แทนค่าด้านล่างนี้ และตั้งค่า API_SECRET_KEY ให้ตรงกับฝั่ง Code.gs
+    //
+    // หมายเหตุ: ใช้ JSONP (โหลดผ่าน <script src="..."> ) แทน fetch() ธรรมดา เพราะ
+    // Google Apps Script Web App ไม่ได้แนบ header "Access-Control-Allow-Origin" มาด้วยเสมอไป
+    // ทำให้ fetch() ข้ามโดเมน (เช่นจาก GitHub Pages) ถูกเบราว์เซอร์บล็อกด้วย CORS (Failed to fetch)
+    // ส่วน JSONP อาศัย <script> tag ซึ่งไม่อยู่ภายใต้ข้อจำกัด CORS จึงใช้งานได้เสมอ
     var GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwHAK-1MIuPTvnzBZq0oz8coWlKlg4FVG8zqUgNIdWuCwwmis4O2xYYpGYhmHTT5USIXg/exec';
     var GAS_API_KEY = 'swdn622';
 
-    // เรียกดึงข้อมูล (แทนที่ google.script.run.withSuccessHandler(...).FUNC())
-    function gasApiGet(action) {
-      var url = GAS_API_URL + '?action=' + encodeURIComponent(action) + '&key=' + encodeURIComponent(GAS_API_KEY);
-      return fetch(url).then(function(res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      }).then(function(json) {
-        if (json && json.success === false) throw new Error(json.error || 'API error');
-        return json;
+    var __gasJsonpSeq = 0;
+
+    // ฟังก์ชันกลาง เรียก GAS ผ่าน JSONP แล้วคืนค่าเป็น Promise (ใช้ .then()/.catch() ได้เหมือน fetch เดิม)
+    // rejectOnFail: true = ถ้า response เป็น {success:false} ให้ reject (ใช้กับ action อ่านข้อมูล)
+    //               false = resolve ค่าดิบเสมอ ให้ผู้เรียกเช็ค res.success เอง (ใช้กับ action บันทึกข้อมูล)
+    function gasJsonpRequest(extraParams, rejectOnFail) {
+      return new Promise(function(resolve, reject) {
+        var cbName = '__gasCb_' + (__gasJsonpSeq++) + '_' + Date.now();
+        var script = document.createElement('script');
+        var timeoutId;
+
+        function cleanup() {
+          delete window[cbName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          if (timeoutId) clearTimeout(timeoutId);
+        }
+
+        window[cbName] = function(data) {
+          cleanup();
+          if (rejectOnFail && data && data.success === false) reject(new Error(data.error || 'API error'));
+          else resolve(data);
+        };
+
+        timeoutId = setTimeout(function() {
+          cleanup();
+          reject(new Error('หมดเวลาเชื่อมต่อกับเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง'));
+        }, 30000);
+
+        var qs = ['key=' + encodeURIComponent(GAS_API_KEY), 'callback=' + encodeURIComponent(cbName)];
+        Object.keys(extraParams).forEach(function(k) {
+          qs.push(encodeURIComponent(k) + '=' + encodeURIComponent(extraParams[k]));
+        });
+
+        script.src = GAS_API_URL + '?' + qs.join('&');
+        script.onerror = function() {
+          cleanup();
+          reject(new Error('ไม่สามารถเชื่อมต่อ API ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'));
+        };
+        document.body.appendChild(script);
       });
     }
 
+    // เรียกดึงข้อมูล (แทนที่ google.script.run.withSuccessHandler(...).FUNC())
+    function gasApiGet(action) {
+      return gasJsonpRequest({ action: action }, true);
+    }
+
     // เรียกบันทึก/แก้ไขข้อมูล (แทนที่ google.script.run.withSuccessHandler(...)[actionName](data))
-    // หมายเหตุ: ไม่ตั้ง Content-Type เป็น application/json เพื่อให้เป็น "simple request"
-    // และไม่ต้องผ่าน CORS preflight (Google Apps Script ไม่รองรับ OPTIONS)
     function gasApiPost(action, payload) {
-      return fetch(GAS_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ key: GAS_API_KEY, action: action, payload: payload })
-      }).then(function(res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      });
+      return gasJsonpRequest({ action: action, payload: JSON.stringify(payload) }, false);
     }
 
     // ==========================================

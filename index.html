@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบรายงานการให้บริการสังคมสงเคราะห์</title><link rel="icon" type="image/png" href="https://i.ibb.co/C5sD85wd/Logo-sw69.png">
+  <title>ระบบรายงานการให้บริการสังคมสงเคราะห์</title><link rel="icon" type="image/png" href="logo-sw69.png">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -29,25 +29,64 @@
 </head>
 <body class="flex h-screen overflow-hidden bg-slate-50">
 
+  <!-- ================= หน้าจอเข้าสู่ระบบ ================= -->
+  <div id="loginScreen" class="fixed inset-0 z-[60] flex items-center justify-center bg-gradient-to-br from-[#2c6385] to-[#1a3f55] p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div class="bg-gradient-to-r from-[#3d82af] to-[#2c6385] p-6 text-center text-white">
+        <div class="bg-white p-2 rounded-full mx-auto mb-3 shadow-md w-16 h-16 flex items-center justify-center">
+          <img src="logo-sw69.png" alt="Logo" class="h-11 w-11 object-contain rounded-full">
+        </div>
+        <h1 class="font-bold text-lg">Medical Social Work</h1>
+        <p class="text-xs text-white/80 mt-1">รพ.สมเด็จพระสังฆราช (อมฺพรมหาเถร)</p>
+      </div>
+      <form id="loginForm" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="loginUsername" class="input-field" placeholder="ชื่อผู้ใช้งาน" required autocomplete="username">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">รหัสผ่าน</label>
+          <input type="password" id="loginPassword" class="input-field" placeholder="รหัสผ่าน" required autocomplete="current-password">
+        </div>
+        <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-3 py-2"></div>
+        <button type="submit" id="loginBtn" class="w-full bg-theme text-white px-6 py-2.5 rounded-xl font-bold shadow-md hover-bg-theme transition">เข้าสู่ระบบ</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= แอปหลัก (แสดงหลังล็อกอินสำเร็จเท่านั้น) ================= -->
+  <div id="appShell" class="hidden w-full h-full">
+
   <!-- Sidebar -->
   <aside id="sidebar" class="bg-gradient-to-b from-[#2c6385] to-[#1a3f55] w-64 text-white flex-shrink-0 fixed inset-y-0 left-0 md:relative z-40 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl">
     <div class="h-16 flex items-center px-4 border-b border-white/10 justify-between">
       <div class="flex items-center">
         <div class="bg-white p-1 rounded-full mr-3 shadow-md">
-          <img src="https://i.ibb.co/C5sD85wd/Logo-sw69.png" alt="Logo" class="h-8 w-8 object-contain rounded-full">
+          <img src="logo-sw69.png" alt="Logo" class="h-8 w-8 object-contain rounded-full">
         </div>
         <span class="font-bold text-lg tracking-wide text-white">Medical Social Work</span>
       </div>
       <button onclick="toggleSidebar()" class="md:hidden text-white/70 hover:text-white">✖</button>
     </div>
-    <div class="overflow-y-auto h-[calc(100vh-4rem)] custom-scrollbar py-4 px-3 space-y-1">
-      <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-3 mt-2">เมนูหลัก</p>
-      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group bg-white/20 text-white font-bold" onclick="switchTab('page-register', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📝</span> บันทึกเคสใหม่</a>
-      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-followup', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">🔄</span> ติดตาม (Follow-up)</a>
-      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-search', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">🔍</span> ค้นหาประวัติ</a>
-      <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-3 mt-6">สถิติและรายงาน</p>
-      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-dashboard', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📊</span> Dashboard</a>
-      <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-export', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📥</span> ออกรายงาน Excel</a>
+    <div class="overflow-y-auto h-[calc(100vh-4rem)] custom-scrollbar py-4 px-3 space-y-1 flex flex-col">
+      <div class="flex-1">
+        <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-3 mt-2">เมนูหลัก</p>
+        <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group bg-white/20 text-white font-bold" onclick="switchTab('page-register', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📝</span> บันทึกเคสใหม่</a>
+        <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-followup', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">🔄</span> ติดตาม (Follow-up)</a>
+        <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-search', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">🔍</span> ค้นหาประวัติ</a>
+        <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-3 mt-6">สถิติและรายงาน</p>
+        <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-dashboard', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📊</span> Dashboard</a>
+        <a class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-export', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">📥</span> ออกรายงาน Excel</a>
+        <p id="adminMenuLabel" class="text-xs font-bold text-white/50 uppercase tracking-wider mb-2 px-3 mt-6" style="display:none;">ผู้ดูแลระบบ</p>
+        <a id="navUserMgmt" style="display:none;" class="nav-item cursor-pointer flex items-center px-3 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition group" onclick="switchTab('page-users', this)"><span class="text-xl mr-3 group-hover:scale-110 transition">👤</span> จัดการผู้ใช้งาน</a>
+      </div>
+      <div class="border-t border-white/10 pt-3 px-1">
+        <div class="px-2 py-2">
+          <p id="userDisplayName" class="font-bold text-sm text-white truncate">-</p>
+          <p id="userRoleBadge" class="text-xs text-white/60">-</p>
+        </div>
+        <a class="cursor-pointer flex items-center px-3 py-2.5 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition text-sm" onclick="logout()"><span class="text-lg mr-3">🚪</span> ออกจากระบบ</a>
+      </div>
     </div>
   </aside>
 
@@ -78,7 +117,7 @@
                 <div><label class="block text-sm font-bold text-gray-700 mb-1">วันที่ให้บริการ</label><input type="date" id="serviceDate" name="serviceDate" class="input-field cursor-pointer" required></div>
                 <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">นักสังคมสงเคราะห์</label>
-                  <select name="socialWorker" class="input-field" required>
+                  <select name="socialWorker" class="input-field sw-dynamic-select" required>
                     <option value="">-- เลือกผู้บันทึก --</option>
                     <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
                   </select>
@@ -240,7 +279,7 @@
             <select id="fuSearchMonth" class="input-field">
                 <option value="">-- ทุกเดือน --</option><option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option><option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option><option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option><option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
             </select>
-            <select id="fuSearchWorker" class="input-field">
+            <select id="fuSearchWorker" class="input-field sw-dynamic-select sw-filter-select">
                 <option value="">-- ทุกนักสังคมสงเคราะห์ --</option>
                 <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
             </select>
@@ -328,7 +367,7 @@
                   <div><label class="block text-sm font-bold text-gray-700 mb-1">วันที่ติดตาม</label><input type="date" name="serviceDateUpdate" class="input-field text-sm" required></div>
                   <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">นักสังคมฯ ที่ติดตาม</label>
-                    <select name="workerUpdate" class="input-field text-sm" required>
+                    <select name="workerUpdate" class="input-field text-sm sw-dynamic-select" required>
                       <option value="">-- เลือกนักสังคมฯ --</option>
                       <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
                     </select>
@@ -396,7 +435,7 @@
               <select id="globalSearchMonth" class="input-field">
                   <option value="">-- ทุกเดือน --</option><option value="1">มกราคม</option><option value="2">กุมภาพันธ์</option><option value="3">มีนาคม</option><option value="4">เมษายน</option><option value="5">พฤษภาคม</option><option value="6">มิถุนายน</option><option value="7">กรกฎาคม</option><option value="8">สิงหาคม</option><option value="9">กันยายน</option><option value="10">ตุลาคม</option><option value="11">พฤศจิกายน</option><option value="12">ธันวาคม</option>
               </select>
-              <select id="globalSearchWorker" class="input-field">
+              <select id="globalSearchWorker" class="input-field sw-dynamic-select sw-filter-select">
                   <option value="">-- ทุกนักสังคมสงเคราะห์ --</option>
                   <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
               </select>
@@ -428,7 +467,7 @@
                </div>
                <div>
                   <label class="block text-sm font-bold text-gray-700 mb-1">นักสังคมสงเคราะห์</label>
-                  <select id="val-worker" class="input-field">
+                  <select id="val-worker" class="input-field sw-dynamic-select sw-filter-select">
                       <option value="">-- ทุกท่าน --</option>
                       <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
                   </select>
@@ -467,7 +506,7 @@
               </div>
               <div>
                   <label class="block text-xs font-bold text-gray-500 mb-1">นักสังคมสงเคราะห์</label>
-                  <select id="dashSearchWorker" class="input-field py-2" onchange="loadDashboard()">
+                  <select id="dashSearchWorker" class="input-field py-2 sw-dynamic-select sw-filter-select" onchange="loadDashboard()">
                       <option value="">-- ทุกนักสังคมสงเคราะห์ --</option>
                       <option value="สถาพร อิ่มเอม">สถาพร อิ่มเอม</option>
                   </select>
@@ -543,9 +582,85 @@
           </div>
         </div>
 
+        <!-- ================= 6. หน้าจัดการผู้ใช้งาน (เฉพาะ admin) ================= -->
+        <div id="page-users" class="page-section">
+          <div class="mb-6 flex items-center justify-between">
+            <h1 class="text-2xl font-bold text-gray-800 border-l-4 border-[#3d82af] pl-3">👤 จัดการผู้ใช้งาน</h1>
+            <button onclick="openUserModal('create')" class="bg-theme text-white px-5 py-2.5 rounded-xl font-bold shadow-md hover-bg-theme transition">+ เพิ่มผู้ใช้งาน</button>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
+                  <tr>
+                    <th class="p-3">Username</th>
+                    <th class="p-3">ชื่อ-สกุล</th>
+                    <th class="p-3">สิทธิ์</th>
+                    <th class="p-3">สถานะ</th>
+                    <th class="p-3">สร้างเมื่อ</th>
+                    <th class="p-3 text-center">จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody" class="divide-y divide-gray-100">
+                  <tr><td colspan="6" class="p-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Add/Edit Modal -->
+        <div id="userModal" class="fixed inset-0 bg-gray-900/60 z-50 hidden flex justify-center items-center p-4">
+          <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div class="bg-gradient-to-r from-[#3d82af] to-[#2c6385] p-4 text-white flex justify-between items-center rounded-t-2xl">
+              <h3 id="userModalTitle" class="font-bold text-lg">เพิ่มผู้ใช้งาน</h3>
+              <button type="button" onclick="document.getElementById('userModal').classList.add('hidden')" class="text-3xl leading-none hover:text-gray-200">&times;</button>
+            </div>
+            <form id="userForm" class="p-6 space-y-4">
+              <input type="hidden" id="userForm_originalUsername">
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Username</label>
+                <input type="text" id="userForm_username" class="input-field" required>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อ-สกุล (แสดงเป็นชื่อนักสังคมสงเคราะห์)</label>
+                <input type="text" id="userForm_fullName" class="input-field" required>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1" id="userForm_passwordLabel">รหัสผ่าน</label>
+                <input type="password" id="userForm_password" class="input-field" placeholder="อย่างน้อย 4 ตัวอักษร" autocomplete="new-password">
+                <p id="userForm_passwordHint" class="text-xs text-gray-400 mt-1 hidden">เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่าน</p>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">สิทธิ์การใช้งาน</label>
+                  <select id="userForm_role" class="input-field">
+                    <option value="staff">นักสังคมสงเคราะห์</option>
+                    <option value="admin">ผู้ดูแลระบบ</option>
+                  </select>
+                </div>
+                <div id="userForm_statusWrap" class="hidden">
+                  <label class="block text-sm font-bold text-gray-700 mb-1">สถานะ</label>
+                  <select id="userForm_status" class="input-field">
+                    <option value="active">ใช้งานอยู่</option>
+                    <option value="inactive">ระงับการใช้งาน</option>
+                  </select>
+                </div>
+              </div>
+              <div id="userFormError" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-3 py-2"></div>
+              <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('userModal').classList.add('hidden')" class="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-xl font-bold border border-gray-300">ยกเลิก</button>
+                <button type="submit" id="userForm_submitBtn" class="bg-theme text-white px-6 py-2.5 rounded-xl font-bold shadow-md hover-bg-theme">💾 บันทึก</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
       </div>
     </main>
   </div>
+
+  </div><!-- /#appShell -->
 
   <script>
     // ==========================================
@@ -590,6 +705,7 @@
         }, 30000);
 
         var qs = ['key=' + encodeURIComponent(GAS_API_KEY), 'callback=' + encodeURIComponent(cbName)];
+        if (currentUser && currentUser.token) qs.push('token=' + encodeURIComponent(currentUser.token));
         Object.keys(extraParams).forEach(function(k) {
           qs.push(encodeURIComponent(k) + '=' + encodeURIComponent(extraParams[k]));
         });
@@ -614,9 +730,258 @@
     }
 
     // ==========================================
+    // AUTHENTICATION (Login / Session / User Management)
+    // ==========================================
+    var currentUser = null; // { username, fullName, role, token, expiry }
+    var SESSION_KEY = 'msw_session_v1';
+
+    // แฮชรหัสผ่านด้วย SHA-256 ฝั่ง browser ก่อนส่ง (ไม่ส่งรหัสผ่านตัวจริงออกไปทาง URL)
+    function sha256Hex(str) {
+      var enc = new TextEncoder().encode(str);
+      return crypto.subtle.digest('SHA-256', enc).then(function(buf) {
+        return Array.from(new Uint8Array(buf)).map(function(b) {
+          return b.toString(16).padStart(2, '0');
+        }).join('');
+      });
+    }
+
+    function loadSession() {
+      try {
+        var raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        var sess = JSON.parse(raw);
+        if (!sess.expiry || Date.now() > sess.expiry) { localStorage.removeItem(SESSION_KEY); return null; }
+        return sess;
+      } catch (e) { return null; }
+    }
+
+    function saveSession(sess) { localStorage.setItem(SESSION_KEY, JSON.stringify(sess)); }
+    function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+    function showApp(sess) {
+      currentUser = sess;
+      document.getElementById('loginScreen').classList.add('hidden');
+      var shell = document.getElementById('appShell');
+      shell.classList.remove('hidden');
+      shell.classList.add('flex');
+      document.getElementById('userDisplayName').textContent = sess.fullName;
+      document.getElementById('userRoleBadge').textContent = sess.role === 'admin' ? 'ผู้ดูแลระบบ' : 'นักสังคมสงเคราะห์';
+      var navAdmin = document.getElementById('navUserMgmt');
+      var lblAdmin = document.getElementById('adminMenuLabel');
+      var isAdmin = sess.role === 'admin';
+      if (navAdmin) navAdmin.style.display = isAdmin ? '' : 'none';
+      if (lblAdmin) lblAdmin.style.display = isAdmin ? '' : 'none';
+      loadSocialWorkerOptions();
+    }
+
+    function logout() {
+      Swal.fire({ title: 'ออกจากระบบ?', icon: 'question', showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#ff3f3e' }).then(function(res) {
+        if (res.isConfirmed) {
+          clearSession();
+          currentUser = null;
+          location.reload();
+        }
+      });
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(ev) {
+      ev.preventDefault();
+      var btn = document.getElementById('loginBtn');
+      var errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
+      var username = document.getElementById('loginUsername').value.trim();
+      var password = document.getElementById('loginPassword').value;
+      var txt = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = 'กำลังเข้าสู่ระบบ...';
+
+      sha256Hex(password).then(function(hash) {
+        return gasApiPost('login', { username: username, passwordHash: hash });
+      }).then(function(res) {
+        btn.disabled = false; btn.innerHTML = txt;
+        if (res.success) {
+          var sess = { token: res.token, username: res.user.username, fullName: res.user.fullName, role: res.user.role, expiry: res.expiry };
+          saveSession(sess);
+          showApp(sess);
+        } else {
+          errEl.textContent = res.error || 'เข้าสู่ระบบไม่สำเร็จ';
+          errEl.classList.remove('hidden');
+        }
+      }).catch(function(err) {
+        btn.disabled = false; btn.innerHTML = txt;
+        errEl.textContent = err.toString();
+        errEl.classList.remove('hidden');
+      });
+    });
+
+    // โหลดรายชื่อนักสังคมสงเคราะห์ (active) จากเซิร์ฟเวอร์ มาเติมใน dropdown ทุกจุดที่ใช้งาน
+    function loadSocialWorkerOptions() {
+      gasApiGet('getActiveSocialWorkers').then(function(res) {
+        populateSocialWorkerSelects((res && res.workers) || []);
+      }).catch(function(err) {
+        console.error('โหลดรายชื่อนักสังคมสงเคราะห์ไม่สำเร็จ:', err);
+      });
+    }
+
+    function populateSocialWorkerSelects(names) {
+      var selects = document.querySelectorAll('.sw-dynamic-select');
+      selects.forEach(function(sel) {
+        var isFilter = sel.classList.contains('sw-filter-select');
+        var currentVal = sel.value;
+        sel.innerHTML = '';
+        var optDefault = document.createElement('option');
+        optDefault.value = '';
+        optDefault.textContent = isFilter ? '-- ทุกนักสังคมสงเคราะห์ --' : '-- เลือกผู้บันทึก --';
+        sel.appendChild(optDefault);
+        names.forEach(function(n) {
+          var opt = document.createElement('option');
+          opt.value = n; opt.textContent = n;
+          sel.appendChild(opt);
+        });
+        if (currentVal && names.indexOf(currentVal) !== -1) {
+          sel.value = currentVal;
+        } else if (!isFilter && currentUser && names.indexOf(currentUser.fullName) !== -1) {
+          sel.value = currentUser.fullName; // ตั้งค่าเริ่มต้นเป็นผู้ที่ล็อกอินอยู่ในฟอร์มบันทึกข้อมูล
+        }
+      });
+    }
+
+    // ------------------------------------------
+    // หน้าจัดการผู้ใช้งาน (Admin only)
+    // ------------------------------------------
+    var editingUsername = null;
+
+    function loadUsersList() {
+      var tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">กำลังโหลดข้อมูล...</td></tr>';
+      gasApiGet('listUsers').then(function(res) {
+        var users = (res && res.users) || [];
+        if (users.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400">ยังไม่มีผู้ใช้งาน</td></tr>'; return; }
+        tbody.innerHTML = '';
+        users.forEach(function(u) {
+          var statusBadge = u.status === 'active'
+            ? '<span class="px-2 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600">ใช้งานอยู่</span>'
+            : '<span class="px-2 py-1 rounded-full text-xs font-bold bg-red-50 text-red-500">ระงับการใช้งาน</span>';
+          var roleBadge = u.role === 'admin'
+            ? '<span class="px-2 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600">ผู้ดูแลระบบ</span>'
+            : '<span class="px-2 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600">นักสังคมสงเคราะห์</span>';
+          var toggleLabel = u.status === 'active' ? 'ระงับ' : 'เปิดใช้งาน';
+          var tr = document.createElement('tr');
+          tr.innerHTML =
+            '<td class="p-3 font-bold text-gray-700">' + u.username + '</td>' +
+            '<td class="p-3">' + u.fullName + '</td>' +
+            '<td class="p-3">' + roleBadge + '</td>' +
+            '<td class="p-3">' + statusBadge + '</td>' +
+            '<td class="p-3 text-xs text-gray-400">' + (u.createdAt || '-') + '</td>' +
+            '<td class="p-3 text-center whitespace-nowrap">' +
+              '<button class="text-[#3d82af] font-bold text-xs mr-3 hover:underline" data-edit="' + u.username + '">แก้ไข</button>' +
+              '<button class="text-orange-500 font-bold text-xs hover:underline" data-toggle="' + u.username + '" data-status="' + u.status + '">' + toggleLabel + '</button>' +
+            '</td>';
+          tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll('[data-edit]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var uname = btn.getAttribute('data-edit');
+            var u = users.filter(function(x){ return x.username === uname; })[0];
+            if (u) openUserModal('edit', u);
+          });
+        });
+        tbody.querySelectorAll('[data-toggle]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var uname = btn.getAttribute('data-toggle');
+            var curStatus = btn.getAttribute('data-status');
+            var newStatus = curStatus === 'active' ? 'inactive' : 'active';
+            var confirmMsg = newStatus === 'inactive' ? 'ระงับการใช้งานผู้ใช้นี้?' : 'เปิดการใช้งานผู้ใช้นี้อีกครั้ง?';
+            Swal.fire({ title: confirmMsg, icon: 'question', showCancelButton: true, confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก' }).then(function(r) {
+              if (!r.isConfirmed) return;
+              gasApiPost('updateUser', { username: uname, status: newStatus }).then(function(res) {
+                if (res.success) { Swal.fire({ icon: 'success', title: 'สำเร็จ', timer: 1200, showConfirmButton: false }); loadUsersList(); }
+                else Swal.fire('Error', res.error, 'error');
+              }).catch(function(err) { Swal.fire('Error', err.toString(), 'error'); });
+            });
+          });
+        });
+      }).catch(function(err) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-red-500">เกิดข้อผิดพลาด: ' + err.toString() + '</td></tr>';
+      });
+    }
+
+    function openUserModal(mode, userData) {
+      var form = document.getElementById('userForm');
+      form.reset();
+      document.getElementById('userFormError').classList.add('hidden');
+      document.getElementById('userForm_statusWrap').classList.toggle('hidden', mode !== 'edit');
+      document.getElementById('userForm_passwordHint').classList.toggle('hidden', mode !== 'edit');
+      document.getElementById('userForm_password').required = (mode !== 'edit');
+
+      if (mode === 'edit' && userData) {
+        editingUsername = userData.username;
+        document.getElementById('userModalTitle').textContent = 'แก้ไขผู้ใช้งาน: ' + userData.username;
+        document.getElementById('userForm_originalUsername').value = userData.username;
+        document.getElementById('userForm_username').value = userData.username;
+        document.getElementById('userForm_username').disabled = true;
+        document.getElementById('userForm_fullName').value = userData.fullName;
+        document.getElementById('userForm_role').value = userData.role;
+        document.getElementById('userForm_status').value = userData.status;
+      } else {
+        editingUsername = null;
+        document.getElementById('userModalTitle').textContent = 'เพิ่มผู้ใช้งาน';
+        document.getElementById('userForm_username').disabled = false;
+      }
+      document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    document.getElementById('userForm').addEventListener('submit', function(ev) {
+      ev.preventDefault();
+      var errEl = document.getElementById('userFormError');
+      errEl.classList.add('hidden');
+      var btn = document.getElementById('userForm_submitBtn');
+      var txt = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = 'กำลังบันทึก...';
+
+      var username = document.getElementById('userForm_username').value.trim();
+      var fullName = document.getElementById('userForm_fullName').value.trim();
+      var role = document.getElementById('userForm_role').value;
+      var password = document.getElementById('userForm_password').value;
+
+      var hashPromise = password ? sha256Hex(password) : Promise.resolve(null);
+
+      hashPromise.then(function(hash) {
+        if (editingUsername) {
+          var status = document.getElementById('userForm_status').value;
+          var payload = { username: editingUsername, fullName: fullName, role: role, status: status };
+          if (hash) payload.passwordHash = hash;
+          return gasApiPost('updateUser', payload);
+        } else {
+          return gasApiPost('createUser', { username: username, fullName: fullName, role: role, passwordHash: hash });
+        }
+      }).then(function(res) {
+        btn.disabled = false; btn.innerHTML = txt;
+        if (res.success) {
+          Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: res.message, timer: 1500, showConfirmButton: false });
+          document.getElementById('userModal').classList.add('hidden');
+          loadUsersList();
+          loadSocialWorkerOptions();
+        } else {
+          errEl.textContent = res.error || 'เกิดข้อผิดพลาด';
+          errEl.classList.remove('hidden');
+        }
+      }).catch(function(err) {
+        btn.disabled = false; btn.innerHTML = txt;
+        errEl.textContent = err.toString();
+        errEl.classList.remove('hidden');
+      });
+    });
+
+    // ==========================================
     // INITIALIZATION (Safe Execute)
     // ==========================================
     document.addEventListener("DOMContentLoaded", function() {
+        // ตรวจสอบ session ที่บันทึกไว้ ถ้ายังไม่หมดอายุให้เข้าระบบอัตโนมัติ ไม่งั้นค้างที่หน้า login
+        try {
+            var sess = loadSession();
+            if (sess) showApp(sess);
+        } catch(e){}
+
         try { document.getElementById('serviceDate').valueAsDate = new Date(); } catch(e){}
         try { generateFiscalYearOptions(); } catch(e){}
         
@@ -756,6 +1121,7 @@
       }
       if(tabId === 'page-dashboard') loadDashboard();
       if(tabId === 'page-followup') searchForFollowUp(); 
+      if(tabId === 'page-users') loadUsersList();
     }
 
     // ==========================================
